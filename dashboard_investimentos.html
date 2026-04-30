@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard de Investimentos totais por Estado / PT / FC</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-width:900px}
+
+/* HEADER */
+header{
+  background:#fff200;padding:11px 24px;display:flex;align-items:center;gap:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,.14);border-bottom:3px solid #d4ac00;
+  position:sticky;top:0;z-index:200;
+}
+.logo-wrap img{height:38px;object-fit:contain;display:block}
+.hdiv{width:1px;height:34px;background:rgba(0,0,0,.2);flex-shrink:0}
+.hd{flex:1}
+.hd h1{font-size:1.05rem;font-weight:800;color:#1a1a2e;letter-spacing:-.2px}
+.hd p{font-size:.68rem;color:#555;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+.source-link{
+  font-size:.72rem;font-weight:600;color:#1a1a2e;text-decoration:none;
+  background:rgba(0,0,0,.08);padding:5px 10px;border-radius:20px;
+  display:flex;align-items:center;gap:5px;transition:background .15s;white-space:nowrap
+}
+.source-link:hover{background:rgba(0,0,0,.16)}
+.btn-dl{
+  font-size:.72rem;font-weight:700;color:#fff200;background:#1a1a2e;
+  padding:5px 12px;border-radius:20px;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:background .15s;white-space:nowrap
+}
+.btn-dl:hover{background:#0f3460}
+
+/* INFO BANNER */
+.info-banner{
+  background:#fffbeb;border-left:4px solid #f59e0b;
+  padding:9px 24px;font-size:.75rem;color:#78350f;display:flex;gap:8px;align-items:flex-start
+}
+.info-banner strong{color:#92400e}
+
+/* FILTERS */
+.filters-bar{
+  background:#fff;padding:10px 24px;display:flex;gap:12px;
+  align-items:flex-end;flex-wrap:wrap;border-bottom:1px solid #e0e0e0;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);position:sticky;top:63px;z-index:100
+}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:.66rem;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px}
+
+/* MULTI-SELECT */
+.ms-wrap{position:relative;user-select:none}
+.ms-trigger{
+  min-width:170px;max-width:220px;padding:6px 28px 6px 10px;border:1px solid #ccc;border-radius:6px;
+  font-size:.82rem;color:#1a1a2e;cursor:pointer;background:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;
+  transition:border-color .15s
+}
+.ms-trigger::after{
+  content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  font-size:.7rem;color:#888
+}
+.ms-wrap.open .ms-trigger{border-color:#f59e0b;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.ms-dropdown{
+  display:none;position:absolute;top:100%;left:0;min-width:100%;max-width:260px;
+  background:#fff;border:1px solid #f59e0b;border-top:none;border-radius:0 0 6px 6px;
+  max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,.12)
+}
+.ms-wrap.open .ms-dropdown{display:block}
+.ms-item{
+  display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;
+  font-size:.8rem;color:#1a1a2e;transition:background .1s
+}
+.ms-item:hover{background:#fffbeb}
+.ms-item input{accent-color:#d97706;width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.ms-divider{height:1px;background:#f0f0f0;margin:2px 0}
+.ms-selected-count{
+  display:inline-block;background:#d97706;color:#fff;border-radius:10px;
+  font-size:.6rem;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle
+}
+
+/* CURRENCY TOGGLE */
+.currency-toggle{display:flex;border:1px solid #ccc;border-radius:6px;overflow:hidden;align-self:flex-end}
+.currency-toggle button{
+  padding:6px 13px;border:none;background:#fff;font-size:.78rem;font-weight:600;
+  cursor:pointer;color:#666;transition:all .15s
+}
+.currency-toggle button.active{background:#1a1a2e;color:#fff200}
+.btn-clear{
+  padding:6px 14px;background:#f0f2f5;color:#555;border:1px solid #ccc;border-radius:6px;
+  font-size:.78rem;font-weight:600;cursor:pointer;align-self:flex-end;transition:all .15s
+}
+.btn-clear:hover{background:#e2e8f0;color:#1a1a2e}
+
+/* MAIN */
+.main{padding:16px 24px}
+
+/* KPIs */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:11px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:10px;padding:13px 16px;box-shadow:0 1px 5px rgba(0,0,0,.08);
+  border-left:4px solid #ccc;position:relative}
+.kpi.real{border-left-color:#16a34a}.kpi.prev{border-left-color:#ea580c}
+.kpi.t27{border-left-color:#d97706}.kpi.t28{border-left-color:#dc2626}
+.kpi.tot{border-left-color:#2563eb}
+.kpi .lbl{font-size:.64rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kpi .val{font-size:1.2rem;font-weight:700;color:#1a1a2e;line-height:1.2}
+.kpi .sub{font-size:.64rem;color:#bbb;margin-top:2px}
+.kpi .bcur{position:absolute;top:9px;right:10px;font-size:.58rem;font-weight:700;
+  padding:1px 5px;border-radius:8px;background:#f1f5f9;color:#64748b}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:#fff;border-radius:10px;padding:15px 18px;box-shadow:0 1px 5px rgba(0,0,0,.08)}
+.card h3{font-size:.73rem;font-weight:700;color:#555;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:11px;display:flex;align-items:center;gap:6px}
+.card h3 .ctag{font-size:.6rem;font-weight:600;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:8px}
+.chart-wrap{position:relative;height:260px}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.79rem}
+thead th{background:#1a1a2e;color:#fff200;padding:8px 10px;text-align:left;
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+th.r,td.r{text-align:right}
+tbody tr{border-bottom:1px solid #f0f0f0;transition:background .1s}
+tbody tr:hover:not(.group-header):not(.subtotal){background:#fffbeb}
+tbody td{padding:7px 10px;white-space:nowrap}
+tr.group-header td{background:#f8fafc;font-weight:700;font-size:.76rem;
+  padding:7px 10px;border-top:2px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+tr.subtotal td{background:#fef9e7;font-weight:600;border-top:1px solid #e2e8f0;
+  border-bottom:2px solid #d4ac00;color:#555;font-size:.76rem;padding:7px 10px}
+tfoot tr{background:#1a1a2e;color:#fff}
+tfoot td{padding:8px 10px;font-weight:700;white-space:nowrap}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.64rem;font-weight:700;margin-right:4px}
+.bfbm{background:#dbeafe;color:#1d4ed8}.bsvc{background:#dcfce7;color:#15803d}
+.bxd{background:#fef3c7;color:#92400e}.bair{background:#ede9fe;color:#5b21b6}
+.bsc{background:#fce7f3;color:#9d174d}
+.no-data{text-align:center;padding:36px;color:#aaa}
+@media(max-width:768px){.charts-row{grid-template-columns:1fr}.main{padding:12px 14px}}
+@media print{
+  body{min-width:unset;background:#fff}
+  header{position:static;box-shadow:none;border-bottom:2px solid #d4ac00;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .filters-bar{display:none}
+  .info-banner{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .btn-dl,.source-link,.header-right{display:none}
+  .main{padding:8px}
+  .charts-row{grid-template-columns:1fr 1fr;page-break-inside:avoid}
+  .card{box-shadow:none;border:1px solid #e0e0e0;page-break-inside:avoid}
+  .chart-wrap{height:190px}
+  .table-wrap{overflow:visible}
+  table{font-size:.68rem}
+  thead th{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  tfoot tr{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  tr.group-header td,tr.subtotal td{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadolivre/logo__large_plus@2x.png"
+         alt="Mercado Livre"
+         onerror="this.src='https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadolibre/logo__large_plus@2x.png'">
+  </div>
+  <div class="hdiv"></div>
+  <div class="hd">
+    <h1>Dashboard de Investimentos totais por Estado / PT / FC</h1>
+    <p>Realizado: Base Ativos (BRL) &nbsp;&bull;&nbsp; Previsto: Capex 26-28 (USD) &nbsp;&bull;&nbsp; Câmbio: R$ 5,20 / USD</p>
+  </div>
+  <div class="header-right">
+    <a class="source-link" href="https://docs.google.com/spreadsheets/d/1uD2YMCB0p4hRbq-9JP9U6qMha0Kb8APXBQRjt2GuRZY/edit?usp=drive_open&ouid=103500978047067946766" target="_blank" title="Abrir base de dados">
+      📊 Base de Dados
+    </a>
+    <button class="btn-dl" onclick="downloadDashboard()">⬇ Download</button>
+  </div>
+</header>
+
+<div class="info-banner">
+  <span>ℹ️</span>
+  <span>
+    <strong>Realizado</strong>: custo dos ativos imobilizados registrados na Base de Ativos (BRL histórico).&nbsp;&nbsp;
+    <strong>Previsto 2026 / Plan 2027 / Plan 2028</strong>: novos investimentos em Capex previstos no forecast (USD convertidos pelo câmbio R$ 5,20).
+  </span>
+</div>
+
+<div class="filters-bar">
+  <div class="fg"><label>Estado</label>       <div class="ms-wrap" id="ms-estado"></div></div>
+  <div class="fg"><label>Picking Type</label> <div class="ms-wrap" id="ms-picking"></div></div>
+  <div class="fg"><label>FC</label>           <div class="ms-wrap" id="ms-fc"></div></div>
+  <div class="fg"><label>Moeda</label>
+    <div class="currency-toggle">
+      <button id="btn-brl" class="active" onclick="setCurrency('BRL')">R$ BRL</button>
+      <button id="btn-usd" onclick="setCurrency('USD')">$ USD</button>
+    </div>
+  </div>
+  <button class="btn-clear" onclick="resetFilters()">✕ Limpar filtros</button>
+</div>
+
+<div class="main">
+  <div class="kpi-row">
+    <div class="kpi real"><div class="bcur" id="cur-real">BRL</div>
+      <div class="lbl">Realizado</div><div class="val" id="k-real">—</div>
+      <div class="sub">Custo ativos imobilizados</div></div>
+    <div class="kpi prev"><div class="bcur" id="cur-prev">USD</div>
+      <div class="lbl">Previsto Mai–Dez/2026 <span style="font-weight:400;opacity:.75">(FCST 2+10)</span></div><div class="val" id="k-prev">—</div>
+      <div class="sub">Novos investimentos capex</div></div>
+    <div class="kpi t27"><div class="bcur" id="cur-27">USD</div>
+      <div class="lbl">Plan 2027</div><div class="val" id="k-27">—</div>
+      <div class="sub">Novos investimentos capex</div></div>
+    <div class="kpi t28"><div class="bcur" id="cur-28">USD</div>
+      <div class="lbl">Plan 2028</div><div class="val" id="k-28">—</div>
+      <div class="sub">Novos investimentos capex</div></div>
+    <div class="kpi tot">
+      <div class="lbl">FCs com Realizado</div><div class="val" id="k-fcs">—</div>
+      <div class="sub">com ativos registrados</div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <h3>Realizado por Picking Type <span class="ctag" id="ct-pick">BRL</span></h3>
+      <div class="chart-wrap"><canvas id="pickingChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Realizado por Estado <span class="ctag" id="ct-estado">BRL</span></h3>
+      <div class="chart-wrap"><canvas id="estadoChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Detalhe por FC — Agrupado por Picking Type</h3>
+    <div class="table-wrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+      <div id="no-data" class="no-data" style="display:none">Nenhum dado para os filtros selecionados.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RAW    = [{"fc": "AAL1", "desc": "Airhub Maceió", "picking": "AIR", "estado": "Alagoas (AL)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 365581.0, "Dez/26": 26856.0, "Plan 2027": 63340.0, "Plan 2028": 0.0}, {"fc": "SAL1", "desc": "Maceio", "picking": "SVC", "estado": "Alagoas (AL)", "realizado": 113248.91, "Mai/26": 83282.0, "Jun/26": 306076.0, "Jul/26": 395543.0, "Ago/26": 540734.0, "Set/26": 215233.0, "Out/26": 209148.0, "Nov/26": 137658.0, "Dez/26": 156318.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SAL2", "desc": "Arapiraca", "picking": "SVC", "estado": "Alagoas (AL)", "realizado": 0.0, "Mai/26": 3667.0, "Jun/26": 3585.0, "Jul/26": 3678.0, "Ago/26": 3678.0, "Set/26": 3678.0, "Out/26": 3678.0, "Nov/26": 3585.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SAP1", "desc": "Macapá", "picking": "SVC", "estado": "Amapá (AP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "AAM1", "desc": "Airhub Manaus", "picking": "AIR", "estado": "Amazonas (AM)", "realizado": 1787.0, "Mai/26": 0.0, "Jun/26": 2000.0, "Jul/26": 0.0, "Ago/26": 2000.0, "Set/26": 2000.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 2000.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXAM1", "desc": "Manaus", "picking": "XD", "estado": "Amazonas (AM)", "realizado": 8286.29, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SAM1", "desc": "Manaus", "picking": "SVC", "estado": "Amazonas (AM)", "realizado": 103126.48, "Mai/26": 26311.0, "Jun/26": 14177.0, "Jul/26": 2660.0, "Ago/26": 14908.0, "Set/26": 6599.0, "Out/26": 2075.0, "Nov/26": 9524.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SAMX", "desc": "Amazonas", "picking": "SVC", "estado": "Amazonas (AM)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 24920.0, "Set/26": 74761.0, "Out/26": 124602.0, "Nov/26": 149523.0, "Dez/26": 49841.0, "Plan 2027": 74761.0, "Plan 2028": 0.0}, {"fc": "ABA1", "desc": "Airhub Salvador", "picking": "AIR", "estado": "Bahia (BA)", "realizado": 4017.69, "Mai/26": 148331.0, "Jun/26": 69676.0, "Jul/26": 1330.0, "Ago/26": 4453.0, "Set/26": 4117.0, "Out/26": 106757.0, "Nov/26": 0.0, "Dez/26": 8305.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRBA01", "desc": "Salvador", "picking": "FBM", "estado": "Bahia (BA)", "realizado": 11196105.16, "Mai/26": 1318581.0, "Jun/26": 2242155.0, "Jul/26": 1490924.0, "Ago/26": 1042997.0, "Set/26": 771373.0, "Out/26": 172247.0, "Nov/26": 15011.0, "Dez/26": 31294.0, "Plan 2027": 0.0, "Plan 2028": 33440.0}, {"fc": "BRXBA1", "desc": "Salvador", "picking": "XD", "estado": "Bahia (BA)", "realizado": 87250.79, "Mai/26": 37327.0, "Jun/26": 36255.0, "Jul/26": 12239.0, "Ago/26": 72028.0, "Set/26": 92649.0, "Out/26": 55611.0, "Nov/26": 59557.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA1", "desc": "Salvador", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 1227224.08, "Mai/26": 0.0, "Jun/26": 52623.0, "Jul/26": 170298.0, "Ago/26": 226997.0, "Set/26": 260782.0, "Out/26": 94980.0, "Nov/26": 96551.0, "Dez/26": 42387.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA2", "desc": "Feira de Santana", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 726667.49, "Mai/26": 78050.0, "Jun/26": 91866.0, "Jul/26": 20050.0, "Ago/26": 35977.0, "Set/26": 37600.0, "Out/26": 98405.0, "Nov/26": 96410.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA3", "desc": "Vitória da Conquista", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 227870.44, "Mai/26": 4631.0, "Jun/26": 95629.0, "Jul/26": 3800.0, "Ago/26": 89571.0, "Set/26": 75255.0, "Out/26": 86404.0, "Nov/26": 260624.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA4", "desc": "Juazeiro", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 15632.52, "Mai/26": 16085.0, "Jun/26": 61605.0, "Jul/26": 80424.0, "Ago/26": 168362.0, "Set/26": 105757.0, "Out/26": 104023.0, "Nov/26": 87939.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA5", "desc": "Juazeiro - Fechado", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SBA6", "desc": "Salvador II", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 284097.16, "Mai/26": 99875.0, "Jun/26": 63543.0, "Jul/26": 195807.0, "Ago/26": 174618.0, "Set/26": 107543.0, "Out/26": 92097.0, "Nov/26": 79437.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRBA02", "desc": "Salvador 2", "picking": "FBM", "estado": "Bahia (BA)", "realizado": 8577157.75, "Mai/26": 50572.0, "Jun/26": 118451.0, "Jul/26": 64278.0, "Ago/26": 218979.0, "Set/26": 165689.0, "Out/26": 144327.0, "Nov/26": 9425.0, "Dez/26": 294564.0, "Plan 2027": 589128.0, "Plan 2028": 0.0}, {"fc": "SBA8", "desc": "Juazeiro II", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 3667.0, "Jun/26": 3585.0, "Jul/26": 3678.0, "Ago/26": 3678.0, "Set/26": 5412.0, "Out/26": 3678.0, "Nov/26": 3585.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SBANS", "desc": "TBD - Eunápolis", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRBA03", "desc": "Salvador 3", "picking": "FBM", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 7489.0, "Jun/26": 1672428.0, "Jul/26": 8050032.0, "Ago/26": 7488.0, "Set/26": 7488.0, "Out/26": 1682347.0, "Nov/26": 2059951.0, "Dez/26": 112407.0, "Plan 2027": 55902731.0, "Plan 2028": 0.0}, {"fc": "SBA12", "desc": "Bahia", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 38213.0, "Set/26": 114640.0, "Out/26": 191067.0, "Nov/26": 229280.0, "Dez/26": 76427.0, "Plan 2027": 114640.0, "Plan 2028": 0.0}, {"fc": "SBA11", "desc": "Teixeira de Freitas", "picking": "SVC", "estado": "Bahia (BA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 34203.0, "Set/26": 102608.0, "Out/26": 171013.0, "Nov/26": 205215.0, "Dez/26": 68405.0, "Plan 2027": 102608.0, "Plan 2028": 0.0}, {"fc": "ACE1", "desc": "Airhub Fortaleza", "picking": "AIR", "estado": "Ceará (CE)", "realizado": 0.0, "Mai/26": 151875.0, "Jun/26": 32734.0, "Jul/26": 63720.0, "Ago/26": 4453.0, "Set/26": 4830.0, "Out/26": 0.0, "Nov/26": 267043.0, "Dez/26": 3642.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXCE1", "desc": "Fortaleza", "picking": "XD", "estado": "Ceará (CE)", "realizado": 159876.4, "Mai/26": 9029.0, "Jun/26": 60596.0, "Jul/26": 17982.0, "Ago/26": 44015.0, "Set/26": 68509.0, "Out/26": 21545.0, "Nov/26": 27685.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SCE1", "desc": "Fortaleza", "picking": "SVC", "estado": "Ceará (CE)", "realizado": 2359715.1, "Mai/26": 116709.0, "Jun/26": 110604.0, "Jul/26": 43513.0, "Ago/26": 10459.0, "Set/26": 9857.0, "Out/26": 10022.0, "Nov/26": 11353.0, "Dez/26": 31787.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "BRCE01", "desc": "Metro FBM Fortaleza", "picking": "FBM", "estado": "Ceará (CE)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SCE2", "desc": "Itaitinga (Fortaleza)", "picking": "SVC", "estado": "Ceará (CE)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 101745.0, "Jul/26": 305234.0, "Ago/26": 508723.0, "Set/26": 610468.0, "Out/26": 203489.0, "Nov/26": 203489.0, "Dez/26": 101745.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "ADF1", "desc": "Airhub Brasilia", "picking": "AIR", "estado": "Distrito Federal (DF)", "realizado": 606759.8, "Mai/26": 1286.0, "Jun/26": 8087.0, "Jul/26": 1330.0, "Ago/26": 6662.0, "Set/26": 6116.0, "Out/26": 2817.0, "Nov/26": 2000.0, "Dez/26": 3642.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SDF1", "desc": "Brasilia", "picking": "SVC", "estado": "Distrito Federal (DF)", "realizado": 1224842.78, "Mai/26": 66805.0, "Jun/26": 75100.0, "Jul/26": 3990.0, "Ago/26": 53608.0, "Set/26": 49474.0, "Out/26": 28832.0, "Nov/26": 37934.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SDF2", "desc": "Brasilia 2", "picking": "SVC", "estado": "Distrito Federal (DF)", "realizado": 317461.02, "Mai/26": 40794.0, "Jun/26": 18969.0, "Jul/26": 2470.0, "Ago/26": 22835.0, "Set/26": 6808.0, "Out/26": 4908.0, "Nov/26": 13592.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRDF01", "desc": "Distrito Federal", "picking": "FBM", "estado": "Distrito Federal (DF)", "realizado": 300629.42, "Mai/26": 33808.0, "Jun/26": 50856.0, "Jul/26": 12496.0, "Ago/26": 13852.0, "Set/26": 35532.0, "Out/26": 23072.0, "Nov/26": 9102.0, "Dez/26": 0.0, "Plan 2027": 34010.0, "Plan 2028": 0.0}, {"fc": "BRDF02", "desc": "Brasilia 2", "picking": "FBM", "estado": "Distrito Federal (DF)", "realizado": 0.0, "Mai/26": 1482574.0, "Jun/26": 785574.0, "Jul/26": 1186144.0, "Ago/26": 839558.0, "Set/26": 470078.0, "Out/26": 414571.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 387600.0}, {"fc": "BRDF03", "desc": "Brasília 03", "picking": "FBM", "estado": "Distrito Federal (DF)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 4619725.0, "Plan 2028": 621775.0}, {"fc": "SDF3", "desc": "Distrito Federak", "picking": "SVC", "estado": "Distrito Federal (DF)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 99313.0, "Set/26": 297938.0, "Out/26": 496563.0, "Nov/26": 595876.0, "Dez/26": 198625.0, "Plan 2027": 297938.0, "Plan 2028": 0.0}, {"fc": "SDF4", "desc": "Expansão SDF1", "picking": "SVC", "estado": "Distrito Federal (DF)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 64955.0, "Jul/26": 194865.0, "Ago/26": 324775.0, "Set/26": 389730.0, "Out/26": 129910.0, "Nov/26": 129910.0, "Dez/26": 64955.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXES1", "desc": "Vitória", "picking": "XD", "estado": "Espírito Santo (ES)", "realizado": 410524.1, "Mai/26": 15001.0, "Jun/26": 177167.0, "Jul/26": 166495.0, "Ago/26": 233829.0, "Set/26": 126091.0, "Out/26": 12000.0, "Nov/26": 18844.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SES1", "desc": "Vitória", "picking": "SVC", "estado": "Espírito Santo (ES)", "realizado": 3375943.55, "Mai/26": 49641.0, "Jun/26": 18222.0, "Jul/26": 16630.0, "Ago/26": 29019.0, "Set/26": 46640.0, "Out/26": 4870.0, "Nov/26": 3825.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SES2", "desc": "Cachoeiro do Itapemirim", "picking": "SVC", "estado": "Espírito Santo (ES)", "realizado": 223861.52, "Mai/26": 2775.0, "Jun/26": 22473.0, "Jul/26": 3230.0, "Ago/26": 20814.0, "Set/26": 17842.0, "Out/26": 6399.0, "Nov/26": 56902.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SES3", "desc": "Linhares", "picking": "SVC", "estado": "Espírito Santo (ES)", "realizado": 273785.48, "Mai/26": 1366.0, "Jun/26": 23939.0, "Jul/26": 25803.0, "Ago/26": 23364.0, "Set/26": 6573.0, "Out/26": 80213.0, "Nov/26": 10407.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRES01", "desc": "Metro FBM - Vitoria", "picking": "FBM", "estado": "Espírito Santo (ES)", "realizado": 0.0, "Mai/26": 188602.0, "Jun/26": 59322.0, "Jul/26": 19741.0, "Ago/26": 0.0, "Set/26": 3150.0, "Out/26": 3150.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SES5", "desc": "Espirito Santo", "picking": "SVC", "estado": "Espírito Santo (ES)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 40887.0, "Set/26": 122662.0, "Out/26": 204436.0, "Nov/26": 245323.0, "Dez/26": 81774.0, "Plan 2027": 122662.0, "Plan 2028": 0.0}, {"fc": "SES4", "desc": "Cariacica - Nave Parcial", "picking": "SVC", "estado": "Espírito Santo (ES)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 71836.0, "Ago/26": 215509.0, "Set/26": 359182.0, "Out/26": 431018.0, "Nov/26": 143673.0, "Dez/26": 143673.0, "Plan 2027": 71836.0, "Plan 2028": 0.0}, {"fc": "AES1", "desc": "Airhub Vitória", "picking": "AIR", "estado": "Espírito Santo (ES)", "realizado": 1895.49, "Mai/26": 0.0, "Jun/26": 18216.0, "Jul/26": 380.0, "Ago/26": 6453.0, "Set/26": 4117.0, "Out/26": 0.0, "Nov/26": 5760.0, "Dez/26": 3167.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "AGO1", "desc": "Airhub Goiânia", "picking": "AIR", "estado": "Goiás (GO)", "realizado": 129699.77, "Mai/26": 33336.0, "Jun/26": 2711.0, "Jul/26": 380.0, "Ago/26": 1286.0, "Set/26": 10593.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 475.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXGO1", "desc": "Goiania", "picking": "XD", "estado": "Goiás (GO)", "realizado": 237803.59, "Mai/26": 255135.0, "Jun/26": 61624.0, "Jul/26": 55595.0, "Ago/26": 143276.0, "Set/26": 137173.0, "Out/26": 90922.0, "Nov/26": 85618.0, "Dez/26": 17202.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SGO1", "desc": "Goiania", "picking": "SVC", "estado": "Goiás (GO)", "realizado": 214112.42, "Mai/26": 2550.0, "Jun/26": 20107.0, "Jul/26": 380.0, "Ago/26": 14066.0, "Set/26": 5464.0, "Out/26": 2780.0, "Nov/26": 10780.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SGO2", "desc": "Rio Verde", "picking": "SVC", "estado": "Goiás (GO)", "realizado": 285980.53, "Mai/26": 329771.0, "Jun/26": 192878.0, "Jul/26": 64358.0, "Ago/26": 54511.0, "Set/26": 36214.0, "Out/26": 15422.0, "Nov/26": 11803.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SGO3", "desc": "Hidrolândia", "picking": "SVC", "estado": "Goiás (GO)", "realizado": 715132.43, "Mai/26": 165092.0, "Jun/26": 52087.0, "Jul/26": 73251.0, "Ago/26": 170797.0, "Set/26": 224685.0, "Out/26": 68436.0, "Nov/26": 43145.0, "Dez/26": 23078.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "AMA1", "desc": "Airhub Sao Luis", "picking": "AIR", "estado": "Maranhão (MA)", "realizado": 1632.87, "Mai/26": 24700.0, "Jun/26": 95283.0, "Jul/26": 1330.0, "Ago/26": 83311.0, "Set/26": 9114.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 3167.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMN2", "desc": "São Luís", "picking": "SVC", "estado": "Maranhão (MA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMN1", "desc": "São Luís", "picking": "SVC", "estado": "Maranhão (MA)", "realizado": 462849.92, "Mai/26": 8280.0, "Jun/26": 79418.0, "Jul/26": 195095.0, "Ago/26": 343749.0, "Set/26": 394852.0, "Out/26": 138534.0, "Nov/26": 138441.0, "Dez/26": 66344.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "AMT1", "desc": "Airhub Cuiabá", "picking": "AIR", "estado": "Mato Grosso (MT)", "realizado": 0.0, "Mai/26": 32155.0, "Jun/26": 29058.0, "Jul/26": 380.0, "Ago/26": 4453.0, "Set/26": 4830.0, "Out/26": 3995.0, "Nov/26": 0.0, "Dez/26": 3642.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMR1", "desc": "Cuiabá", "picking": "SVC", "estado": "Mato Grosso (MT)", "realizado": 1032094.43, "Mai/26": 18905.0, "Jun/26": 10462.0, "Jul/26": 19290.0, "Ago/26": 18889.0, "Set/26": 18729.0, "Out/26": 11187.0, "Nov/26": 10932.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMR2", "desc": "Sinop", "picking": "SVC", "estado": "Mato Grosso (MT)", "realizado": 284019.51, "Mai/26": 198871.0, "Jun/26": 168679.0, "Jul/26": 9142.0, "Ago/26": 93502.0, "Set/26": 63740.0, "Out/26": 14801.0, "Nov/26": 15183.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SMR4", "desc": "Mato Grosso", "picking": "SVC", "estado": "Mato Grosso (MT)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 43293.0, "Set/26": 129878.0, "Out/26": 216463.0, "Nov/26": 259755.0, "Dez/26": 86585.0, "Plan 2027": 129878.0, "Plan 2028": 0.0}, {"fc": "SMS1", "desc": "Campo Grande", "picking": "SVC", "estado": "Mato Grosso do Sul (MS)", "realizado": 552570.73, "Mai/26": 3402.0, "Jun/26": 226672.0, "Jul/26": 67174.0, "Ago/26": 47333.0, "Set/26": 33745.0, "Out/26": 26790.0, "Nov/26": 19506.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMS2", "desc": "Dourados", "picking": "SVC", "estado": "Mato Grosso do Sul (MS)", "realizado": 414048.21, "Mai/26": 21833.0, "Jun/26": 29551.0, "Jul/26": 78694.0, "Ago/26": 109831.0, "Set/26": 135173.0, "Out/26": 41572.0, "Nov/26": 42047.0, "Dez/26": 20371.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMS3", "desc": "Campo Grande", "picking": "SVC", "estado": "Mato Grosso do Sul (MS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 136386.0, "Jul/26": 409159.0, "Ago/26": 681932.0, "Set/26": 818318.0, "Out/26": 272773.0, "Nov/26": 272773.0, "Dez/26": 136386.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRMG01", "desc": "Extrema", "picking": "FBM", "estado": "Minas Gerais (MG)", "realizado": 4739095.59, "Mai/26": 627459.0, "Jun/26": 377595.0, "Jul/26": 527394.0, "Ago/26": 207815.0, "Set/26": 300736.0, "Out/26": 213857.0, "Nov/26": 80842.0, "Dez/26": 0.0, "Plan 2027": 19682757.0, "Plan 2028": 13043751.0}, {"fc": "BRMG02", "desc": "Betim", "picking": "FBM", "estado": "Minas Gerais (MG)", "realizado": 16031083.36, "Mai/26": 1287806.0, "Jun/26": 1038873.0, "Jul/26": 925088.0, "Ago/26": 1081706.0, "Set/26": 569207.0, "Out/26": 687112.0, "Nov/26": 280923.0, "Dez/26": 1273443.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXMG1", "desc": "BH Contagem", "picking": "XD", "estado": "Minas Gerais (MG)", "realizado": 2525917.39, "Mai/26": 463481.0, "Jun/26": 475304.0, "Jul/26": 126272.0, "Ago/26": 752839.0, "Set/26": 486121.0, "Out/26": 90362.0, "Nov/26": 441104.0, "Dez/26": 115728.0, "Plan 2027": 849064.0, "Plan 2028": 0.0}, {"fc": "SMG1", "desc": "Belo Horizonte / Mina Gerais", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 623939.24, "Mai/26": 3593.0, "Jun/26": 116324.0, "Jul/26": 15580.0, "Ago/26": 318257.0, "Set/26": 61850.0, "Out/26": 46073.0, "Nov/26": 12590.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG10", "desc": "Divinópolis", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 414307.31, "Mai/26": 3667.0, "Jun/26": 27637.0, "Jul/26": 6148.0, "Ago/26": 30846.0, "Set/26": 35557.0, "Out/26": 15701.0, "Nov/26": 24083.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SMG11", "desc": "Patos de Minas", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 357926.57, "Mai/26": 0.0, "Jun/26": 20789.0, "Jul/26": 15143.0, "Ago/26": 28320.0, "Set/26": 23764.0, "Out/26": 13765.0, "Nov/26": 19888.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG12", "desc": "Uberaba", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 769586.01, "Mai/26": 0.0, "Jun/26": 16266.0, "Jul/26": 19670.0, "Ago/26": 44334.0, "Set/26": 50142.0, "Out/26": 40736.0, "Nov/26": 38950.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG13", "desc": "Teófilo Otoni", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 134101.85, "Mai/26": 1286.0, "Jun/26": 21437.0, "Jul/26": 380.0, "Ago/26": 117895.0, "Set/26": 319302.0, "Out/26": 573302.0, "Nov/26": 347664.0, "Dez/26": 199169.0, "Plan 2027": 150783.0, "Plan 2028": 0.0}, {"fc": "SMG14", "desc": "BH3", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 1374635.36, "Mai/26": 17578.0, "Jun/26": 27251.0, "Jul/26": 9880.0, "Ago/26": 36003.0, "Set/26": 28722.0, "Out/26": 14172.0, "Nov/26": 21188.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG2", "desc": "Juiz de Fora", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 625671.2, "Mai/26": 11967.0, "Jun/26": 26072.0, "Jul/26": 3420.0, "Ago/26": 14728.0, "Set/26": 27733.0, "Out/26": 8173.0, "Nov/26": 6771.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG3", "desc": "Pouso Alegre", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 344926.45, "Mai/26": 75095.0, "Jun/26": 77423.0, "Jul/26": 89115.0, "Ago/26": 72866.0, "Set/26": 59852.0, "Out/26": 6209.0, "Nov/26": 5774.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SMG4", "desc": "Ipatinga", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 224028.22, "Mai/26": 8182.0, "Jun/26": 20966.0, "Jul/26": 21347.0, "Ago/26": 20303.0, "Set/26": 19962.0, "Out/26": 13888.0, "Nov/26": 13540.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SMG5", "desc": "Poços de Caldas", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 112669.02, "Mai/26": 5145.0, "Jun/26": 26460.0, "Jul/26": 3420.0, "Ago/26": 18600.0, "Set/26": 29406.0, "Out/26": 3455.0, "Nov/26": 11930.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG6", "desc": "Uberlândia", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 618219.26, "Mai/26": 0.0, "Jun/26": 15435.0, "Jul/26": 2280.0, "Ago/26": 5482.0, "Set/26": 12172.0, "Out/26": 2196.0, "Nov/26": 2196.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG7", "desc": "Montes Claros", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 145963.36, "Mai/26": 5801.0, "Jun/26": 23750.0, "Jul/26": 3040.0, "Ago/26": 15899.0, "Set/26": 16806.0, "Out/26": 9953.0, "Nov/26": 9229.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG8", "desc": "BH Zona Norte", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 442553.8, "Mai/26": 12041.0, "Jun/26": 37316.0, "Jul/26": 18561.0, "Ago/26": 64269.0, "Set/26": 70294.0, "Out/26": 133431.0, "Nov/26": 47074.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SMG9", "desc": "Varginha", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 271513.82, "Mai/26": 49500.0, "Jun/26": 471595.0, "Jul/26": 299090.0, "Ago/26": 24453.0, "Set/26": 38049.0, "Out/26": 108674.0, "Nov/26": 16021.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRT03", "desc": "Return Center en MG01", "picking": "FBM", "estado": "Minas Gerais (MG)", "realizado": 2757.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRMG03", "desc": "Nuevo FBM MG", "picking": "FBM", "estado": "Minas Gerais (MG)", "realizado": 3815789.62, "Mai/26": 32057.0, "Jun/26": 144287.0, "Jul/26": 105123.0, "Ago/26": 14270.0, "Set/26": 47905.0, "Out/26": 149344.0, "Nov/26": 8475.0, "Dez/26": 6562.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG15", "desc": "Contagem II (BH4)", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 15816.78, "Mai/26": 103278.0, "Jun/26": 100704.0, "Jul/26": 9380.0, "Ago/26": 13565.0, "Set/26": 12255.0, "Out/26": 52980.0, "Nov/26": 10279.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRMG04", "desc": "BRMG04", "picking": "FBM", "estado": "Minas Gerais (MG)", "realizado": 1240532.7, "Mai/26": 612007.0, "Jun/26": 484033.0, "Jul/26": 748832.0, "Ago/26": 569957.0, "Set/26": 259637.0, "Out/26": 125416.0, "Nov/26": 167941.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXMG2", "desc": "Uberlandia", "picking": "XD", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 2597.0, "Jun/26": 30426.0, "Jul/26": 9624.0, "Ago/26": 20090.0, "Set/26": 8068.0, "Out/26": 6196.0, "Nov/26": 11719.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXMG3", "desc": "Pouso Alegre", "picking": "XD", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 10236.0, "Jul/26": 13607.0, "Ago/26": 11547.0, "Set/26": 5442.0, "Out/26": 4409.0, "Nov/26": 10178.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SMG18", "desc": "Minas Gerais", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 55825.0, "Set/26": 167475.0, "Out/26": 279125.0, "Nov/26": 334949.0, "Dez/26": 111650.0, "Plan 2027": 167475.0, "Plan 2028": 0.0}, {"fc": "SMG19", "desc": "Minas Gerais", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 149154.0, "Set/26": 447462.0, "Out/26": 745770.0, "Nov/26": 894924.0, "Dez/26": 298308.0, "Plan 2027": 447462.0, "Plan 2028": 0.0}, {"fc": "SMG17", "desc": "Minas Gerais", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 17833.0, "Set/26": 53500.0, "Out/26": 89167.0, "Nov/26": 107000.0, "Dez/26": 35667.0, "Plan 2027": 53500.0, "Plan 2028": 0.0}, {"fc": "SMG16", "desc": "Contagem (Belo Horizonte) [BH]", "picking": "SVC", "estado": "Minas Gerais (MG)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 342069.0, "Set/26": 1026208.0, "Out/26": 1710347.0, "Nov/26": 2052416.0, "Dez/26": 684139.0, "Plan 2027": 1026208.0, "Plan 2028": 0.0}, {"fc": "APA1", "desc": "Airhub Belém", "picking": "AIR", "estado": "Pará (PA)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 7878.0, "Jul/26": 380.0, "Ago/26": 6453.0, "Set/26": 4830.0, "Out/26": 0.0, "Nov/26": 2000.0, "Dez/26": 3642.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPA1", "desc": "Belém", "picking": "SVC", "estado": "Pará (PA)", "realizado": 217636.59, "Mai/26": 90419.0, "Jun/26": 21332.0, "Jul/26": 1710.0, "Ago/26": 65745.0, "Set/26": 52291.0, "Out/26": 46481.0, "Nov/26": 53930.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "APB1", "desc": "Airhub João Pessoa", "picking": "AIR", "estado": "Paraíba (PB)", "realizado": 737173.77, "Mai/26": 0.0, "Jun/26": 4211.0, "Jul/26": 1330.0, "Ago/26": 12876.0, "Set/26": 62294.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 1975.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SJP1", "desc": "João Pessoa", "picking": "SVC", "estado": "Paraíba (PB)", "realizado": 346981.55, "Mai/26": 48624.0, "Jun/26": 90251.0, "Jul/26": 111465.0, "Ago/26": 26875.0, "Set/26": 26566.0, "Out/26": 20460.0, "Nov/26": 20112.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "BRXPR1", "desc": "Curitiba", "picking": "XD", "estado": "Paraná (PR)", "realizado": 849287.82, "Mai/26": 132384.0, "Jun/26": 108709.0, "Jul/26": 19274.0, "Ago/26": 8083.0, "Set/26": 2273.0, "Out/26": 87370.0, "Nov/26": 43312.0, "Dez/26": 3488.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXPR2", "desc": "Londrina", "picking": "XD", "estado": "Paraná (PR)", "realizado": 258186.54, "Mai/26": 0.0, "Jun/26": 8000.0, "Jul/26": 14551.0, "Ago/26": 33787.0, "Set/26": 28243.0, "Out/26": 28160.0, "Nov/26": 33704.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXPR3", "desc": "Cascavel", "picking": "XD", "estado": "Paraná (PR)", "realizado": 240914.92, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 83.0, "Ago/26": 83.0, "Set/26": 83.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPR1", "desc": "Curitiba/Paraná", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 53249.23, "Mai/26": 26186.0, "Jun/26": 156570.0, "Jul/26": 105678.0, "Ago/26": 38838.0, "Set/26": 145040.0, "Out/26": 11955.0, "Nov/26": 34658.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SPR2", "desc": "Londrina", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 621815.63, "Mai/26": 4953.0, "Jun/26": 7108.0, "Jul/26": 4058.0, "Ago/26": 10040.0, "Set/26": 7969.0, "Out/26": 5467.0, "Nov/26": 5374.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SPR3", "desc": "Cascavel", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 566200.88, "Mai/26": 0.0, "Jun/26": 2236.0, "Jul/26": 32094.0, "Ago/26": 37208.0, "Set/26": 37763.0, "Out/26": 36547.0, "Nov/26": 33922.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPR4", "desc": "Pato Branco", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 130089.57, "Mai/26": 656.0, "Jun/26": 8911.0, "Jul/26": 18910.0, "Ago/26": 11409.0, "Set/26": 6430.0, "Out/26": 4264.0, "Nov/26": 4264.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPR5", "desc": "Ponta Guarapuava", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 242252.75, "Mai/26": 4323.0, "Jun/26": 17344.0, "Jul/26": 10487.0, "Ago/26": 95779.0, "Set/26": 6535.0, "Out/26": 4369.0, "Nov/26": 12276.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SPR6", "desc": "Maringá", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 497235.05, "Mai/26": 3667.0, "Jun/26": 19111.0, "Jul/26": 35672.0, "Ago/26": 16698.0, "Set/26": 6628.0, "Out/26": 5412.0, "Nov/26": 13319.0, "Dez/26": 13677.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SPR7", "desc": "Ponta Grossa", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 72736.84, "Mai/26": 1942.0, "Jun/26": 13570.0, "Jul/26": 2660.0, "Ago/26": 94143.0, "Set/26": 14854.0, "Out/26": 2461.0, "Nov/26": 44964.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPR8", "desc": "Curitiba 2", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 198618.29, "Mai/26": 17987.0, "Jun/26": 279881.0, "Jul/26": 56385.0, "Ago/26": 17795.0, "Set/26": 70682.0, "Out/26": 7225.0, "Nov/26": 7132.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "BRXPR4", "desc": "Maringá", "picking": "XD", "estado": "Paraná (PR)", "realizado": 30293.33, "Mai/26": 0.0, "Jun/26": 8000.0, "Jul/26": 42987.0, "Ago/26": 131220.0, "Set/26": 10011.0, "Out/26": 9928.0, "Nov/26": 14050.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRPR01", "desc": "Paraná", "picking": "FBM", "estado": "Paraná (PR)", "realizado": 7313964.65, "Mai/26": 750057.0, "Jun/26": 2401828.0, "Jul/26": 2537009.0, "Ago/26": 1904641.0, "Set/26": 2459149.0, "Out/26": 2611041.0, "Nov/26": 5145984.0, "Dez/26": 5091335.0, "Plan 2027": 23146886.0, "Plan 2028": 660227.0}, {"fc": "SPR12", "desc": "Paraná", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 64682.0, "Set/26": 194045.0, "Out/26": 323408.0, "Nov/26": 388090.0, "Dez/26": 129363.0, "Plan 2027": 194045.0, "Plan 2028": 0.0}, {"fc": "SPR13", "desc": "Paraná", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 37640.0, "Set/26": 112919.0, "Out/26": 188198.0, "Nov/26": 225838.0, "Dez/26": 75279.0, "Plan 2027": 112919.0, "Plan 2028": 0.0}, {"fc": "SPRX", "desc": "Paraná", "picking": "SVC", "estado": "Paraná (PR)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 108276.0, "Set/26": 324829.0, "Out/26": 541382.0, "Nov/26": 649658.0, "Dez/26": 216553.0, "Plan 2027": 324829.0, "Plan 2028": 0.0}, {"fc": "APE1", "desc": "Airhub Recife", "picking": "AIR", "estado": "Pernambuco (PE)", "realizado": 26122.39, "Mai/26": 48450.0, "Jun/26": 5608.0, "Jul/26": 380.0, "Ago/26": 15424.0, "Set/26": 61748.0, "Out/26": 0.0, "Nov/26": 209.0, "Dez/26": 1667.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRPE01", "desc": "Pernambuco", "picking": "FBM", "estado": "Pernambuco (PE)", "realizado": 25451925.09, "Mai/26": 870094.0, "Jun/26": 638844.0, "Jul/26": 656022.0, "Ago/26": 562654.0, "Set/26": 508121.0, "Out/26": 797960.0, "Nov/26": 432513.0, "Dez/26": 262365.0, "Plan 2027": 4004289.0, "Plan 2028": 0.0}, {"fc": "BRXPE1", "desc": "Recife", "picking": "XD", "estado": "Pernambuco (PE)", "realizado": 300916.68, "Mai/26": 5170.0, "Jun/26": 25062.0, "Jul/26": 14398.0, "Ago/26": 45465.0, "Set/26": 38349.0, "Out/26": 30725.0, "Nov/26": 35808.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPE1", "desc": "Recife", "picking": "SVC", "estado": "Pernambuco (PE)", "realizado": 594040.68, "Mai/26": 71846.0, "Jun/26": 5691.0, "Jul/26": 187419.0, "Ago/26": 101049.0, "Set/26": 190379.0, "Out/26": 289478.0, "Nov/26": 337490.0, "Dez/26": 107540.0, "Plan 2027": 161310.0, "Plan 2028": 0.0}, {"fc": "SPE2", "desc": "Recife", "picking": "SVC", "estado": "Pernambuco (PE)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 188906.0, "Jul/26": 566717.0, "Ago/26": 944529.0, "Set/26": 1133434.0, "Out/26": 377811.0, "Nov/26": 377811.0, "Dez/26": 188906.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "API1", "desc": "Airhub Teresina", "picking": "AIR", "estado": "Piauí (PI)", "realizado": 5769.0, "Mai/26": 25986.0, "Jun/26": 5403.0, "Jul/26": 1330.0, "Ago/26": 4453.0, "Set/26": 10400.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 8524.0, "Plan 2027": 59131.0, "Plan 2028": 0.0}, {"fc": "SPI1", "desc": "Teresina", "picking": "SVC", "estado": "Piauí (PI)", "realizado": 602010.13, "Mai/26": 3859.0, "Jun/26": 18698.0, "Jul/26": 147186.0, "Ago/26": 35127.0, "Set/26": 18441.0, "Out/26": 12967.0, "Nov/26": 12207.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SPI2", "desc": "Teresina", "picking": "SVC", "estado": "Piauí (PI)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 40812.0, "Set/26": 122436.0, "Out/26": 204060.0, "Nov/26": 244872.0, "Dez/26": 81624.0, "Plan 2027": 122436.0, "Plan 2028": 0.0}, {"fc": "SSP51", "desc": "Porto Feliz", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 115932.0, "Jun/26": 323310.0, "Jul/26": 579662.0, "Ago/26": 695594.0, "Set/26": 231865.0, "Out/26": 231865.0, "Nov/26": 115932.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRJ01", "desc": "MicroFull Rio de Janeiro", "picking": "FBM", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXRJ1", "desc": "Rio de Janeiro", "picking": "XD", "estado": "Rio de Janeiro (RJ)", "realizado": 1317776.69, "Mai/26": 24858.0, "Jun/26": 71369.0, "Jul/26": 27039.0, "Ago/26": 85890.0, "Set/26": 35395.0, "Out/26": 0.0, "Nov/26": 4507.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ1", "desc": "Rio de Janeiro", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 1039150.54, "Mai/26": 0.0, "Jun/26": 38306.0, "Jul/26": 4560.0, "Ago/26": 79073.0, "Set/26": 90010.0, "Out/26": 53426.0, "Nov/26": 56733.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ10", "desc": "Barra", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 537210.48, "Mai/26": 14271.0, "Jun/26": 38848.0, "Jul/26": 7790.0, "Ago/26": 28654.0, "Set/26": 40999.0, "Out/26": 25193.0, "Nov/26": 5174.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ11_OLD", "desc": "Angra Dos Reis", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ12", "desc": "Itaperuna", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 227989.22, "Mai/26": 4953.0, "Jun/26": 18630.0, "Jul/26": 5768.0, "Ago/26": 19381.0, "Set/26": 7688.0, "Out/26": 6113.0, "Nov/26": 6783.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ13", "desc": "São João de Meriti", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 156561.9, "Mai/26": 4729.0, "Jun/26": 6416.0, "Jul/26": 380.0, "Ago/26": 3788.0, "Set/26": 1452.0, "Out/26": 2972.0, "Nov/26": 1927.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ2", "desc": "Queimados / Nova Iguaçu", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 632258.15, "Mai/26": 512803.0, "Jun/26": 218576.0, "Jul/26": 17154.0, "Ago/26": 114035.0, "Set/26": 136560.0, "Out/26": 43640.0, "Nov/26": 41624.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ3", "desc": "Volta Redonda", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 319841.52, "Mai/26": 165544.0, "Jun/26": 112706.0, "Jul/26": 63772.0, "Ago/26": 83461.0, "Set/26": 88200.0, "Out/26": 24826.0, "Nov/26": 32427.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ4", "desc": "Campo dos Goytacazes", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 651702.42, "Mai/26": 144555.0, "Jun/26": 31701.0, "Jul/26": 114700.0, "Ago/26": 189112.0, "Set/26": 81719.0, "Out/26": 22541.0, "Nov/26": 21515.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ5", "desc": "Petrópolis", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 759078.5, "Mai/26": 3859.0, "Jun/26": 20510.0, "Jul/26": 3800.0, "Ago/26": 18634.0, "Set/26": 31712.0, "Out/26": 2639.0, "Nov/26": 10297.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ6", "desc": "Mendanha Campo Grande", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 162862.53, "Mai/26": 11385.0, "Jun/26": 298720.0, "Jul/26": 229429.0, "Ago/26": 113681.0, "Set/26": 121324.0, "Out/26": 74119.0, "Nov/26": 101240.0, "Dez/26": 30540.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ7", "desc": "Macaé", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 58378.78, "Mai/26": 4323.0, "Jun/26": 22517.0, "Jul/26": 23009.0, "Ago/26": 54684.0, "Set/26": 20399.0, "Out/26": 94834.0, "Nov/26": 25874.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ8", "desc": "Niterói", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 345098.03, "Mai/26": 33120.0, "Jun/26": 87514.0, "Jul/26": 221534.0, "Ago/26": 29380.0, "Set/26": 23973.0, "Out/26": 7847.0, "Nov/26": 14352.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRJ9", "desc": "São Pedro da aldeia / Cabo Frio", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 54074.98, "Mai/26": 43878.0, "Jun/26": 13745.0, "Jul/26": 64003.0, "Ago/26": 17889.0, "Set/26": 20329.0, "Out/26": 12969.0, "Nov/26": 12412.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP40", "desc": "Zona Norte 3", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 237129.12, "Mai/26": 59167.0, "Jun/26": 33466.0, "Jul/26": 3420.0, "Ago/26": 22126.0, "Set/26": 52380.0, "Out/26": 7715.0, "Nov/26": 4593.0, "Dez/26": 77551.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRJ02", "desc": "Rio de Janeiro 2", "picking": "FBM", "estado": "Rio de Janeiro (RJ)", "realizado": 11131593.92, "Mai/26": 4358331.0, "Jun/26": 3706735.0, "Jul/26": 5568046.0, "Ago/26": 4909457.0, "Set/26": 3647714.0, "Out/26": 1819766.0, "Nov/26": 1696524.0, "Dez/26": 2092981.0, "Plan 2027": 124996.0, "Plan 2028": 0.0}, {"fc": "SRJ11", "desc": "Nave Loggi XD", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 1000000.0, "Jun/26": 0.0, "Jul/26": 1110135.0, "Ago/26": 937785.0, "Set/26": 878900.0, "Out/26": 1440120.0, "Nov/26": 195620.0, "Dez/26": 195620.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ19", "desc": "Rio", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 40889.0, "Set/26": 122667.0, "Out/26": 204445.0, "Nov/26": 245334.0, "Dez/26": 81778.0, "Plan 2027": 122667.0, "Plan 2028": 0.0}, {"fc": "SRJ17", "desc": "Rio", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 22790.0, "Set/26": 68369.0, "Out/26": 113949.0, "Nov/26": 136739.0, "Dez/26": 45580.0, "Plan 2027": 68369.0, "Plan 2028": 0.0}, {"fc": "SRJX", "desc": "Rio", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 64922.0, "Set/26": 194767.0, "Out/26": 324611.0, "Nov/26": 389533.0, "Dez/26": 129844.0, "Plan 2027": 194767.0, "Plan 2028": 0.0}, {"fc": "SRJ14", "desc": "Barra Atual", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 34071.0, "Set/26": 102214.0, "Out/26": 170356.0, "Nov/26": 204427.0, "Dez/26": 68142.0, "Plan 2027": 102214.0, "Plan 2028": 0.0}, {"fc": "SRJ15", "desc": "Queimados [RJ]", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 29710.0, "Jul/26": 89130.0, "Ago/26": 148551.0, "Set/26": 178261.0, "Out/26": 59420.0, "Nov/26": 59420.0, "Dez/26": 29710.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRJ16", "desc": "Opção Resende", "picking": "SVC", "estado": "Rio de Janeiro (RJ)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 195026.0, "Ago/26": 585079.0, "Set/26": 975132.0, "Out/26": 1170159.0, "Nov/26": 390053.0, "Dez/26": 390053.0, "Plan 2027": 195026.0, "Plan 2028": 0.0}, {"fc": "SRN1", "desc": "Natal", "picking": "SVC", "estado": "Rio Grande do Norte (RN)", "realizado": 180557.8, "Mai/26": 5801.0, "Jun/26": 15237.0, "Jul/26": 1140.0, "Ago/26": 34550.0, "Set/26": 20937.0, "Out/26": 115642.0, "Nov/26": 273484.0, "Dez/26": 417039.0, "Plan 2027": 917486.0, "Plan 2028": 0.0}, {"fc": "ARS1", "desc": "Airhub Porto Alegre", "picking": "AIR", "estado": "Rio Grande do Sul (RS)", "realizado": 297296.84, "Mai/26": 0.0, "Jun/26": 8101.0, "Jul/26": 1330.0, "Ago/26": 4662.0, "Set/26": 4830.0, "Out/26": 0.0, "Nov/26": 4521.0, "Dez/26": 3642.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRS01", "desc": "Sapucaia do Sul", "picking": "FBM", "estado": "Rio Grande do Sul (RS)", "realizado": 1560333.07, "Mai/26": 118439.0, "Jun/26": 92864.0, "Jul/26": 26492.0, "Ago/26": 27342.0, "Set/26": 14572.0, "Out/26": 22321.0, "Nov/26": 9729.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXRS1", "desc": "Porto Alegre", "picking": "XD", "estado": "Rio Grande do Sul (RS)", "realizado": 188332.77, "Mai/26": 5125.0, "Jun/26": 54028.0, "Jul/26": 81754.0, "Ago/26": 60382.0, "Set/26": 49807.0, "Out/26": 127408.0, "Nov/26": 74219.0, "Dez/26": 3488.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS1", "desc": "Porto Alegre", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 588074.64, "Mai/26": 10099.0, "Jun/26": 36976.0, "Jul/26": 14888.0, "Ago/26": 35929.0, "Set/26": 48983.0, "Out/26": 28084.0, "Nov/26": 26593.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRS10", "desc": "Venâncio Aires", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 75158.72, "Mai/26": 1286.0, "Jun/26": 20951.0, "Jul/26": 2090.0, "Ago/26": 32026.0, "Set/26": 20238.0, "Out/26": 16775.0, "Nov/26": 24311.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS2", "desc": "Pelotas", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 224163.72, "Mai/26": 19490.0, "Jun/26": 34584.0, "Jul/26": 2850.0, "Ago/26": 18119.0, "Set/26": 17928.0, "Out/26": 3564.0, "Nov/26": 10162.0, "Dez/26": 6429.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS3", "desc": "Santa Maria", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 278466.91, "Mai/26": 6432.0, "Jun/26": 21024.0, "Jul/26": 4180.0, "Ago/26": 9707.0, "Set/26": 11065.0, "Out/26": 3864.0, "Nov/26": 1992.0, "Dez/26": 6429.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS4", "desc": "Caxias do Sul", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 362513.48, "Mai/26": 17816.0, "Jun/26": 30618.0, "Jul/26": 6528.0, "Ago/26": 65475.0, "Set/26": 182863.0, "Out/26": 259140.0, "Nov/26": 307961.0, "Dez/26": 103930.0, "Plan 2027": 154060.0, "Plan 2028": 0.0}, {"fc": "SRS5", "desc": "Passo Fundo", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 918307.81, "Mai/26": 7088.0, "Jun/26": 25660.0, "Jul/26": 3420.0, "Ago/26": 31186.0, "Set/26": 29730.0, "Out/26": 22059.0, "Nov/26": 20657.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS6", "desc": "Alegrete", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 2000.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS7", "desc": "Ijui", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 119797.62, "Mai/26": 1942.0, "Jun/26": 16480.0, "Jul/26": 3040.0, "Ago/26": 109941.0, "Set/26": 45913.0, "Out/26": 49939.0, "Nov/26": 64506.0, "Dez/26": 15000.0, "Plan 2027": 22500.0, "Plan 2028": 0.0}, {"fc": "SRS8", "desc": "Porto Alegre 2", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 696836.72, "Mai/26": 24152.0, "Jun/26": 23942.0, "Jul/26": 4058.0, "Ago/26": 18034.0, "Set/26": 7964.0, "Out/26": 62299.0, "Nov/26": 14655.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SRS9", "desc": "Porto Alegre 3", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 68457.0, "Jun/26": 4986.0, "Jul/26": 27254.0, "Ago/26": 3678.0, "Set/26": 3678.0, "Out/26": 3678.0, "Nov/26": 3585.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "BRRS02", "desc": "Porto Alegre", "picking": "FBM", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 18857325.0, "Plan 2028": 656095.0}, {"fc": "BRRS03", "desc": "Porto Alegre", "picking": "FBM", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 1734000.0, "Ago/26": 1779662.0, "Set/26": 2731240.0, "Out/26": 3133060.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRS04", "desc": "Porto Alegre", "picking": "FBM", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 3436692.0, "Ago/26": 2571644.0, "Set/26": 2158406.0, "Out/26": 2257304.0, "Nov/26": 7400.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRS14", "desc": "Rio G. do Sul", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 26441.0, "Set/26": 79323.0, "Out/26": 132204.0, "Nov/26": 158645.0, "Dez/26": 52882.0, "Plan 2027": 79323.0, "Plan 2028": 0.0}, {"fc": "SRS11", "desc": "Nova Santa Rita [SRS]", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 161343.0, "Set/26": 484028.0, "Out/26": 806713.0, "Nov/26": 968056.0, "Dez/26": 322685.0, "Plan 2027": 484028.0, "Plan 2028": 0.0}, {"fc": "SRS12", "desc": "RSI_1 Passo Fundo", "picking": "SVC", "estado": "Rio Grande do Sul (RS)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 74438.0, "Set/26": 223314.0, "Out/26": 372190.0, "Nov/26": 446627.0, "Dez/26": 148876.0, "Plan 2027": 223314.0, "Plan 2028": 0.0}, {"fc": "SRD1", "desc": "Porto Velho", "picking": "SVC", "estado": "Rondônia (RO)", "realizado": 395501.74, "Mai/26": 73166.0, "Jun/26": 230834.0, "Jul/26": 388566.0, "Ago/26": 267431.0, "Set/26": 94080.0, "Out/26": 92129.0, "Nov/26": 59282.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SRD5", "desc": "Rondonia", "picking": "SVC", "estado": "Rondônia (RO)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 84513.0, "Set/26": 253539.0, "Out/26": 422565.0, "Nov/26": 507077.0, "Dez/26": 169026.0, "Plan 2027": 253539.0, "Plan 2028": 0.0}, {"fc": "SRD4", "desc": "Porto Velho Euro Aço + Tienda", "picking": "SVC", "estado": "Rondônia (RO)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 13990.0, "Set/26": 41971.0, "Out/26": 69951.0, "Nov/26": 83942.0, "Dez/26": 27981.0, "Plan 2027": 41971.0, "Plan 2028": 0.0}, {"fc": "BRSC02", "desc": "Sta Catarina", "picking": "FBM", "estado": "Santa Catarina (SC)", "realizado": 22935134.37, "Mai/26": 858064.0, "Jun/26": 6414966.0, "Jul/26": 1610418.0, "Ago/26": 5600098.0, "Set/26": 2680864.0, "Out/26": 1930628.0, "Nov/26": 369724.0, "Dez/26": 957521.0, "Plan 2027": 13516135.0, "Plan 2028": 0.0}, {"fc": "BRXSC2", "desc": "Florianópolis", "picking": "XD", "estado": "Santa Catarina (SC)", "realizado": 2372325.88, "Mai/26": 546127.0, "Jun/26": 148628.0, "Jul/26": 203713.0, "Ago/26": 495696.0, "Set/26": 80779.0, "Out/26": 50694.0, "Nov/26": 42075.0, "Dez/26": 125804.0, "Plan 2027": 1207683.0, "Plan 2028": 0.0}, {"fc": "SSC1", "desc": "Joinville", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 193508.13, "Mai/26": 8329.0, "Jun/26": 35520.0, "Jul/26": 135180.0, "Ago/26": 158416.0, "Set/26": 23694.0, "Out/26": 18457.0, "Nov/26": 29816.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC2", "desc": "Florianopolis", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 590883.34, "Mai/26": 656.0, "Jun/26": 43591.0, "Jul/26": 7980.0, "Ago/26": 56372.0, "Set/26": 52786.0, "Out/26": 44708.0, "Nov/26": 43984.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC3", "desc": "Blumenau", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 301978.65, "Mai/26": 5145.0, "Jun/26": 27713.0, "Jul/26": 3990.0, "Ago/26": 51652.0, "Set/26": 53855.0, "Out/26": 33362.0, "Nov/26": 41837.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC4", "desc": "Chapecó", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 661627.77, "Mai/26": 3667.0, "Jun/26": 37655.0, "Jul/26": 8618.0, "Ago/26": 42103.0, "Set/26": 30947.0, "Out/26": 24890.0, "Nov/26": 33481.0, "Dez/26": 9727.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSC5", "desc": "Criciuma", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 111991.34, "Mai/26": 656.0, "Jun/26": 19920.0, "Jul/26": 18720.0, "Ago/26": 42519.0, "Set/26": 110791.0, "Out/26": 160838.0, "Nov/26": 191970.0, "Dez/26": 63192.0, "Plan 2027": 94788.0, "Plan 2028": 0.0}, {"fc": "SSC6", "desc": "Itajaí", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC7", "desc": "Lages", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 179928.58, "Mai/26": 232126.0, "Jun/26": 103066.0, "Jul/26": 4818.0, "Ago/26": 18676.0, "Set/26": 17488.0, "Out/26": 15199.0, "Nov/26": 13913.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSC8", "desc": "Itajaí", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 262856.68, "Mai/26": 0.0, "Jun/26": 2236.0, "Jul/26": 16630.0, "Ago/26": 18532.0, "Set/26": 20462.0, "Out/26": 17246.0, "Nov/26": 17721.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSCNS", "desc": "TBD - Itajaí", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSCNS1", "desc": "TBD - Florianópolis 2", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC9", "desc": "Governador Celso Ramos", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 403527.81, "Mai/26": 0.0, "Jun/26": 8000.0, "Jul/26": 0.0, "Ago/26": 9095.0, "Set/26": 1095.0, "Out/26": 1095.0, "Nov/26": 59796.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSC10", "desc": "Santa Catarina", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 53468.0, "Set/26": 160405.0, "Out/26": 267341.0, "Nov/26": 320809.0, "Dez/26": 106936.0, "Plan 2027": 160405.0, "Plan 2028": 0.0}, {"fc": "SSC12", "desc": "Chapecó_2", "picking": "SVC", "estado": "Santa Catarina (SC)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 74536.0, "Set/26": 223609.0, "Out/26": 372682.0, "Nov/26": 447218.0, "Dez/26": 149073.0, "Plan 2027": 223609.0, "Plan 2028": 0.0}, {"fc": "ASP1", "desc": "AirHub BR Guarulhos", "picking": "AIR", "estado": "São Paulo (SP)", "realizado": 1936317.63, "Mai/26": 103300.0, "Jun/26": 23056.0, "Jul/26": 3415.0, "Ago/26": 405341.0, "Set/26": 18164.0, "Out/26": 88287.0, "Nov/26": 2893.0, "Dez/26": 2475.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "ASP2", "desc": "Airhub Campinas", "picking": "AIR", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 2236.0, "Jul/26": 950.0, "Ago/26": 1286.0, "Set/26": 950.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRC01", "desc": "Receiving Center", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 14813153.96, "Mai/26": 1099855.0, "Jun/26": 2104480.0, "Jul/26": 1906249.0, "Ago/26": 1952673.0, "Set/26": 1226902.0, "Out/26": 949024.0, "Nov/26": 509507.0, "Dez/26": 0.0, "Plan 2027": 247666.0, "Plan 2028": 0.0}, {"fc": "BRRT01", "desc": "Return Center", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 2757730.74, "Mai/26": 18302.0, "Jun/26": 158165.0, "Jul/26": 24570.0, "Ago/26": 21384.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP01", "desc": "Louveira", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP02", "desc": "Cajamar", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 28482840.94, "Mai/26": 2394390.0, "Jun/26": 3651739.0, "Jul/26": 1304101.0, "Ago/26": 1861479.0, "Set/26": 1014400.0, "Out/26": 1437370.0, "Nov/26": 386132.0, "Dez/26": 35450.0, "Plan 2027": 4534638.0, "Plan 2028": 0.0}, {"fc": "BRSP03", "desc": "Anhanguera", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 670883.14, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP04", "desc": "Jordanesia", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 75435963.43, "Mai/26": 3004516.0, "Jun/26": 2318670.0, "Jul/26": 1994654.0, "Ago/26": 1853656.0, "Set/26": 1440552.0, "Out/26": 1041207.0, "Nov/26": 641849.0, "Dez/26": 1780539.0, "Plan 2027": 11156332.0, "Plan 2028": 0.0}, {"fc": "BRSP05", "desc": "Franco Da Rocha", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP06", "desc": "SP06 - Araçariguama", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 23271394.49, "Mai/26": 2591463.0, "Jun/26": 1070440.0, "Jul/26": 266433.0, "Ago/26": 763676.0, "Set/26": 1057296.0, "Out/26": 2025592.0, "Nov/26": 228591.0, "Dez/26": 2302.0, "Plan 2027": 28483735.0, "Plan 2028": 620000.0}, {"fc": "BRSP07", "desc": "SP07 - Sao Pablo", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP09", "desc": "SP09 - Sao Pablo", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1875568.35, "Mai/26": 29243.0, "Jun/26": 29218.0, "Jul/26": 84540.0, "Ago/26": 124215.0, "Set/26": 103189.0, "Out/26": 213454.0, "Nov/26": 9843.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP10", "desc": "Franco Da Rocha II", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 2536531.06, "Mai/26": 552890.0, "Jun/26": 256519.0, "Jul/26": 571661.0, "Ago/26": 134144.0, "Set/26": 96606.0, "Out/26": 193698.0, "Nov/26": 16967.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP11", "desc": "Guarulhos", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 10067233.59, "Mai/26": 770345.0, "Jun/26": 657333.0, "Jul/26": 767147.0, "Ago/26": 556764.0, "Set/26": 506648.0, "Out/26": 618936.0, "Nov/26": 187526.0, "Dez/26": 465877.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP1", "desc": "Barueri - Arena", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 3344635.29, "Mai/26": 282893.0, "Jun/26": 823062.0, "Jul/26": 458837.0, "Ago/26": 999049.0, "Set/26": 402186.0, "Out/26": 348325.0, "Nov/26": 83931.0, "Dez/26": 263014.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP10", "desc": "Guarulhos Mega", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 6336770.54, "Mai/26": 378087.0, "Jun/26": 170951.0, "Jul/26": 713377.0, "Ago/26": 289124.0, "Set/26": 203276.0, "Out/26": 190017.0, "Nov/26": 103304.0, "Dez/26": 1112.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP11", "desc": "Presidente Prudente", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 257917.18, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 14083.0, "Ago/26": 83.0, "Set/26": 83.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP12", "desc": "Araçatuba", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 57287.93, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP13", "desc": "Mega XD Barueri", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP14", "desc": "Paulista Marilia", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 1919153.96, "Mai/26": 1499606.0, "Jun/26": 1483150.0, "Jul/26": 565865.0, "Ago/26": 142559.0, "Set/26": 87720.0, "Out/26": 68387.0, "Nov/26": 92513.0, "Dez/26": 50083.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP15", "desc": "Ribeirão", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP2", "desc": "Campinas", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 6482033.79, "Mai/26": 981642.0, "Jun/26": 1198225.0, "Jul/26": 303048.0, "Ago/26": 470862.0, "Set/26": 137461.0, "Out/26": 89300.0, "Nov/26": 53081.0, "Dez/26": 7922.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP4", "desc": "São Bernardo do Campo", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 1133363.07, "Mai/26": 8111.0, "Jun/26": 93361.0, "Jul/26": 148206.0, "Ago/26": 51857.0, "Set/26": 133259.0, "Out/26": 135734.0, "Nov/26": 17190.0, "Dez/26": 3488.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP5", "desc": "Riberao Prieto", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 3928248.95, "Mai/26": 66223.0, "Jun/26": 89191.0, "Jul/26": 236031.0, "Ago/26": 170352.0, "Set/26": 130491.0, "Out/26": 74367.0, "Nov/26": 21193.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP6", "desc": "Guarulhos", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 513674.59, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 82083.0, "Ago/26": 83.0, "Set/26": 83.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP7", "desc": "Bauru", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 1566408.06, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 18083.0, "Ago/26": 83.0, "Set/26": 83.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 83.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP8", "desc": "Franca", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 19470.73, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP9", "desc": "Sortation Center", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 604449.0, "Jun/26": 932747.0, "Jul/26": 263046.0, "Ago/26": 486403.0, "Set/26": 87138.0, "Out/26": 6101.0, "Nov/26": 14920.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP1", "desc": "Santo Amaro", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 462240.29, "Mai/26": 13327.0, "Jun/26": 27736.0, "Jul/26": 13378.0, "Ago/26": 27670.0, "Set/26": 94580.0, "Out/26": 10783.0, "Nov/26": 17992.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP10", "desc": "Araçatuba", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 342561.83, "Mai/26": 3859.0, "Jun/26": 30188.0, "Jul/26": 3800.0, "Ago/26": 15980.0, "Set/26": 10381.0, "Out/26": 4833.0, "Nov/26": 10023.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP11", "desc": "Presidente Prudente", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 166439.89, "Mai/26": 1168.0, "Jun/26": 33077.0, "Jul/26": 20906.0, "Ago/26": 42931.0, "Set/26": 40981.0, "Out/26": 26935.0, "Nov/26": 27634.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP12", "desc": "São José do Rio Preto", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 172490.74, "Mai/26": 20220.0, "Jun/26": 37832.0, "Jul/26": 238518.0, "Ago/26": 495663.0, "Set/26": 120744.0, "Out/26": 17283.0, "Nov/26": 48331.0, "Dez/26": 61556.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP13", "desc": "Paulista Marilia", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 91616.71, "Mai/26": 3400.0, "Jun/26": 39326.0, "Jul/26": 6270.0, "Ago/26": 25550.0, "Set/26": 7990.0, "Out/26": 7276.0, "Nov/26": 10114.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP14", "desc": "Bauru", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 616383.7, "Mai/26": 4457.0, "Jun/26": 10236.0, "Jul/26": 11493.0, "Ago/26": 11767.0, "Set/26": 7583.0, "Out/26": 4367.0, "Nov/26": 10481.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP15", "desc": "Santos", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 192755.94, "Mai/26": 43297.0, "Jun/26": 27598.0, "Jul/26": 3040.0, "Ago/26": 87595.0, "Set/26": 84167.0, "Out/26": 74626.0, "Nov/26": 75207.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP16", "desc": "Caragutatuba", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 334780.25, "Mai/26": 30848.0, "Jun/26": 33566.0, "Jul/26": 29133.0, "Ago/26": 61144.0, "Set/26": 25964.0, "Out/26": 5159.0, "Nov/26": 5541.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP17", "desc": "San Bernardo", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 12284.11, "Mai/26": 29907.0, "Jun/26": 13821.0, "Jul/26": 14951.0, "Ago/26": 15436.0, "Set/26": 9366.0, "Out/26": 6150.0, "Nov/26": 14057.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP18", "desc": "Jundiaí", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 2192604.09, "Mai/26": 54072.0, "Jun/26": 25344.0, "Jul/26": 16608.0, "Ago/26": 29914.0, "Set/26": 35830.0, "Out/26": 7973.0, "Nov/26": 7099.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP19", "desc": "Guarulhos", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 2000.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP20", "desc": "Sorocaba", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 604332.52, "Mai/26": 14613.0, "Jun/26": 48503.0, "Jul/26": 60178.0, "Ago/26": 28971.0, "Set/26": 45613.0, "Out/26": 20062.0, "Nov/26": 15204.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP21", "desc": "Mooca", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 657479.34, "Mai/26": 22065.0, "Jun/26": 103415.0, "Jul/26": 18698.0, "Ago/26": 36770.0, "Set/26": 103428.0, "Out/26": 8980.0, "Nov/26": 14913.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP22", "desc": "São Carlos", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 105133.34, "Mai/26": 13519.0, "Jun/26": 26384.0, "Jul/26": 5510.0, "Ago/26": 21452.0, "Set/26": 29653.0, "Out/26": 81234.0, "Nov/26": 11637.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP23", "desc": "Mogi das Cruzes", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 121266.08, "Mai/26": 19603.0, "Jun/26": 39015.0, "Jul/26": 7410.0, "Ago/26": 34619.0, "Set/26": 37974.0, "Out/26": 18467.0, "Nov/26": 102355.0, "Dez/26": 10893.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP24", "desc": "Avaré", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 90981.55, "Mai/26": 5609.0, "Jun/26": 25785.0, "Jul/26": 59035.0, "Ago/26": 21193.0, "Set/26": 20484.0, "Out/26": 7822.0, "Nov/26": 13382.0, "Dez/26": 188584.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP25", "desc": "Atibaia", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 1274437.87, "Mai/26": 8182.0, "Jun/26": 51954.0, "Jul/26": 87808.0, "Ago/26": 54680.0, "Set/26": 61669.0, "Out/26": 27781.0, "Nov/26": 34438.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP26", "desc": "Franca", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 299669.29, "Mai/26": 31171.0, "Jun/26": 96408.0, "Jul/26": 16331.0, "Ago/26": 18939.0, "Set/26": 29625.0, "Out/26": 9117.0, "Nov/26": 6904.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP27", "desc": "Itapetininga", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 78965.01, "Mai/26": 3667.0, "Jun/26": 30596.0, "Jul/26": 12618.0, "Ago/26": 42750.0, "Set/26": 230803.0, "Out/26": 19868.0, "Nov/26": 37260.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP28", "desc": "Jales", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 85444.16, "Mai/26": 5609.0, "Jun/26": 22451.0, "Jul/26": 4818.0, "Ago/26": 99797.0, "Set/26": 13266.0, "Out/26": 7814.0, "Nov/26": 15721.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP29", "desc": "Mogi Mirim", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 278869.74, "Mai/26": 8182.0, "Jun/26": 30813.0, "Jul/26": 12238.0, "Ago/26": 43204.0, "Set/26": 44816.0, "Out/26": 20545.0, "Nov/26": 103085.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP3", "desc": "Campinas", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 580244.98, "Mai/26": 3667.0, "Jun/26": 13821.0, "Jul/26": 4058.0, "Ago/26": 18409.0, "Set/26": 12339.0, "Out/26": 9123.0, "Nov/26": 17030.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP30", "desc": "Guarulhos Mega", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 432990.93, "Mai/26": 20077.0, "Jun/26": 23302.0, "Jul/26": 8121.0, "Ago/26": 20318.0, "Set/26": 15562.0, "Out/26": 12346.0, "Nov/26": 19032.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP31", "desc": "Barretos", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 1149852.47, "Mai/26": 6896.0, "Jun/26": 30888.0, "Jul/26": 6148.0, "Ago/26": 22253.0, "Set/26": 15638.0, "Out/26": 8899.0, "Nov/26": 17015.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP32", "desc": "SVC Bulky Franco da Rocha", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 2000.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP33", "desc": "Guarulhos II Bulky (Zona Oeste 2)", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP34", "desc": "Cotia", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 165435.75, "Mai/26": 6386.0, "Jun/26": 32937.0, "Jul/26": 8750.0, "Ago/26": 55540.0, "Set/26": 77111.0, "Out/26": 38247.0, "Nov/26": 34104.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP35", "desc": "Litoral 2", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 72143.58, "Mai/26": 6240.0, "Jun/26": 26765.0, "Jul/26": 8428.0, "Ago/26": 13956.0, "Set/26": 20735.0, "Out/26": 5055.0, "Nov/26": 5334.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP36", "desc": "Piracicaba", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 360594.5, "Mai/26": 4936.0, "Jun/26": 15745.0, "Jul/26": 153141.0, "Ago/26": 416671.0, "Set/26": 461006.0, "Out/26": 616669.0, "Nov/26": 572336.0, "Dez/26": 211494.0, "Plan 2027": 262225.0, "Plan 2028": 0.0}, {"fc": "SSP37", "desc": "Campinas 2", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 1277.0, "Jun/26": 3725.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP38", "desc": "Itupeva", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 230180.48, "Mai/26": 11996.0, "Jun/26": 31018.0, "Jul/26": 16998.0, "Ago/26": 31035.0, "Set/26": 93328.0, "Out/26": 9927.0, "Nov/26": 16793.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP39", "desc": "Guaratinguetá", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 200811.81, "Mai/26": 18280.0, "Jun/26": 26300.0, "Jul/26": 1520.0, "Ago/26": 16530.0, "Set/26": 7551.0, "Out/26": 3385.0, "Nov/26": 11860.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP4", "desc": "Riberao Prieto", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 1041633.27, "Mai/26": 7650.0, "Jun/26": 10236.0, "Jul/26": 380.0, "Ago/26": 12285.0, "Set/26": 6215.0, "Out/26": 2999.0, "Nov/26": 53757.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP41", "desc": "Sao Bernardo Bulky", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP44", "desc": "Volumoso Vila Leopoldina", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP5", "desc": "Barueri - Arena", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 139319.68, "Mai/26": 240960.0, "Jun/26": 18967.0, "Jul/26": 235525.0, "Ago/26": 249818.0, "Set/26": 54845.0, "Out/26": 11323.0, "Nov/26": 16778.0, "Dez/26": 343071.0, "Plan 2027": 116370.0, "Plan 2028": 0.0}, {"fc": "SSP6", "desc": "San Mateus", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 152820.98, "Mai/26": 17092.0, "Jun/26": 123157.0, "Jul/26": 94570.0, "Ago/26": 142151.0, "Set/26": 133816.0, "Out/26": 151785.0, "Nov/26": 29149.0, "Dez/26": 0.0, "Plan 2027": 43200.0, "Plan 2028": 0.0}, {"fc": "SSP7", "desc": "Villa Leopoldina", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 202321.81, "Mai/26": 8812.0, "Jun/26": 40729.0, "Jul/26": 15088.0, "Ago/26": 85316.0, "Set/26": 173828.0, "Out/26": 195240.0, "Nov/26": 202060.0, "Dez/26": 166742.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP8", "desc": "São José dos Campo", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 718446.53, "Mai/26": 20460.0, "Jun/26": 28193.0, "Jul/26": 7030.0, "Ago/26": 25927.0, "Set/26": 22105.0, "Out/26": 16809.0, "Nov/26": 30611.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP9", "desc": "Limeira", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 883794.41, "Mai/26": 25910.0, "Jun/26": 95896.0, "Jul/26": 5320.0, "Ago/26": 49649.0, "Set/26": 118677.0, "Out/26": 4495.0, "Nov/26": 12398.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP14", "desc": "Jordanesia (Nave B)", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 15308732.01, "Mai/26": 1549096.0, "Jun/26": 3392171.0, "Jul/26": 2327176.0, "Ago/26": 2807205.0, "Set/26": 1439615.0, "Out/26": 2471732.0, "Nov/26": 170776.0, "Dez/26": 103839.0, "Plan 2027": 1850216.0, "Plan 2028": 0.0}, {"fc": "BRRT02", "desc": "Return Center", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 165621.41, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRC02", "desc": "RC02 - Sumaré", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1241716.13, "Mai/26": 42438.0, "Jun/26": 201831.0, "Jul/26": 23940.0, "Ago/26": 66845.0, "Set/26": 929365.0, "Out/26": 416366.0, "Nov/26": 58950.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP45", "desc": "ZL - Itaquera", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 354673.39, "Mai/26": 433003.0, "Jun/26": 75894.0, "Jul/26": 582453.0, "Ago/26": 289070.0, "Set/26": 730505.0, "Out/26": 103565.0, "Nov/26": 109902.0, "Dez/26": 49534.0, "Plan 2027": 849065.0, "Plan 2028": 0.0}, {"fc": "BRSP15", "desc": "São Paulo SP15", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 6112777.32, "Mai/26": 241232.0, "Jun/26": 260425.0, "Jul/26": 98903.0, "Ago/26": 33935.0, "Set/26": 145245.0, "Out/26": 3066833.0, "Nov/26": 8475.0, "Dez/26": 0.0, "Plan 2027": 14100000.0, "Plan 2028": 4080000.0}, {"fc": "BRSP13", "desc": "São Paulo SP13", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 3931619.0, "Plan 2028": 0.0}, {"fc": "BRSP12", "desc": "São Paulo SP12", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 5283770.0, "Plan 2028": 0.0}, {"fc": "BRRC03", "desc": "Receiving Center 3", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 2128711.54, "Mai/26": 120186.0, "Jun/26": 529127.0, "Jul/26": 90041.0, "Ago/26": 20720.0, "Set/26": 268169.0, "Out/26": 579298.0, "Nov/26": 55273.0, "Dez/26": 47273.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP17", "desc": "Sortation Center 2", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 6346203.0, "Jun/26": 2388680.0, "Jul/26": 1985029.0, "Ago/26": 1694590.0, "Set/26": 2494802.0, "Out/26": 2853979.0, "Nov/26": 566641.0, "Dez/26": 2892977.0, "Plan 2027": 1575305.0, "Plan 2028": 0.0}, {"fc": "BRSP16", "desc": "Franco da Rocha - CPG", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 699974.0, "Jun/26": 1309016.0, "Jul/26": 3111778.0, "Ago/26": 8706369.0, "Set/26": 3406995.0, "Out/26": 2250188.0, "Nov/26": 2031953.0, "Dez/26": 1279298.0, "Plan 2027": 23258498.0, "Plan 2028": 794788.0}, {"fc": "BRXSP16", "desc": "SP Zona Norte", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 929147.09, "Mai/26": 743168.0, "Jun/26": 2195954.0, "Jul/26": 473093.0, "Ago/26": 602785.0, "Set/26": 3290425.0, "Out/26": 52654.0, "Nov/26": 7485.0, "Dez/26": 2697084.0, "Plan 2027": 126684.0, "Plan 2028": 0.0}, {"fc": "BRXSP18", "desc": "XD Zona SUL", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 2503869.0, "Jun/26": 1487554.0, "Jul/26": 2150556.0, "Ago/26": 1401745.0, "Set/26": 760096.0, "Out/26": 644322.0, "Nov/26": 204784.0, "Dez/26": 7200.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP17", "desc": "Franco da Rocha", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP18", "desc": "Guarulhos", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1987010.3, "Mai/26": 50708.0, "Jun/26": 137307.0, "Jul/26": 66300.0, "Ago/26": 114752.0, "Set/26": 160892.0, "Out/26": 177440.0, "Nov/26": 9425.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP19", "desc": "Guarulhos", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1521042.92, "Mai/26": 130762.0, "Jun/26": 234282.0, "Jul/26": 28800.0, "Ago/26": 114699.0, "Set/26": 113883.0, "Out/26": 120763.0, "Nov/26": 8475.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP24", "desc": "Metro SP24", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1658202.31, "Mai/26": 29586.0, "Jun/26": 66042.0, "Jul/26": 0.0, "Ago/26": 18145.0, "Set/26": 69068.0, "Out/26": 11878.0, "Nov/26": 8000.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP25", "desc": "Prologis Raposo 39", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 1463541.33, "Mai/26": 46212.0, "Jun/26": 23252.0, "Jul/26": 0.0, "Ago/26": 8000.0, "Set/26": 46080.0, "Out/26": 119737.0, "Nov/26": 8000.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP26", "desc": "Prologis Raposo 39", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 357337.0, "Jun/26": 298636.0, "Jul/26": 270995.0, "Ago/26": 32790.0, "Set/26": 15000.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP21", "desc": "Guarulhos", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 22204.0, "Jun/26": 165034.0, "Jul/26": 2031998.0, "Ago/26": 3584386.0, "Set/26": 4772862.0, "Out/26": 3029545.0, "Nov/26": 3416796.0, "Dez/26": 574168.0, "Plan 2027": 13823569.0, "Plan 2028": 1602968.0}, {"fc": "BRRC04", "desc": "Receiving Center 4", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 7240.0, "Jun/26": 7240.0, "Jul/26": 7240.0, "Ago/26": 1393484.0, "Set/26": 7240.0, "Out/26": 1393484.0, "Nov/26": 7240.0, "Dez/26": 148999.0, "Plan 2027": 10450432.0, "Plan 2028": 0.0}, {"fc": "BRSP23", "desc": "SP23 - Zolver", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 7308.0, "Jun/26": 7310.0, "Jul/26": 7310.0, "Ago/26": 7310.0, "Set/26": 7310.0, "Out/26": 7310.0, "Nov/26": 3850628.0, "Dez/26": 97310.0, "Plan 2027": 16250090.0, "Plan 2028": 0.0}, {"fc": "BRSP20", "desc": "BTS Campinas", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 7455000.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 28515980.0, "Plan 2028": 14859310.0}, {"fc": "SSP48", "desc": "Jaguaré", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 3010.08, "Mai/26": 44972.0, "Jun/26": 10290.0, "Jul/26": 3678.0, "Ago/26": 3678.0, "Set/26": 3678.0, "Out/26": 19928.0, "Nov/26": 3585.0, "Dez/26": 53999.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "SSP47", "desc": "Campinas 2 - Nuevo", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 3667.0, "Jun/26": 3585.0, "Jul/26": 3678.0, "Ago/26": 3678.0, "Set/26": 3678.0, "Out/26": 3678.0, "Nov/26": 3585.0, "Dez/26": 3298.0, "Plan 2027": 3112.0, "Plan 2028": 0.0}, {"fc": "BRSP22", "desc": "BRSP22", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 6380850.0, "Plan 2028": 6659760.0}, {"fc": "BRSP28", "desc": "Metro FBM - Marília", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 672526.0, "Jun/26": 194776.0, "Jul/26": 127700.0, "Ago/26": 30000.0, "Set/26": 17251.0, "Out/26": 5141.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP29", "desc": "Cajamar H&B", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 504037.0, "Jun/26": 635456.0, "Jul/26": 663392.0, "Ago/26": 589967.0, "Set/26": 320673.0, "Out/26": 5560.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP20", "desc": "SP Zona Norte II G100", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 7400.0, "Jul/26": 7400.0, "Ago/26": 7400.0, "Set/26": 7400.0, "Out/26": 72400.0, "Nov/26": 7400.0, "Dez/26": 7400.0, "Plan 2027": 15819979.0, "Plan 2028": 0.0}, {"fc": "BRSP27", "desc": "Guarulhos", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 48078.0, "Jun/26": 3715366.0, "Jul/26": 2771855.0, "Ago/26": 2004999.0, "Set/26": 3124887.0, "Out/26": 2141453.0, "Nov/26": 977315.0, "Dez/26": 650344.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP46", "desc": "São Vicente II", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 129242.15, "Mai/26": 73542.0, "Jun/26": 911.0, "Jul/26": 683.0, "Ago/26": 456.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP30", "desc": "Nano Jaguaré", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 1600.0, "Jun/26": 5701.0, "Jul/26": 5701.0, "Ago/26": 0.0, "Set/26": 8572.0, "Out/26": 8572.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP50", "desc": "Santo André  - Zona Sul", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP31", "desc": "Sao Paulo", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 7400.0, "Jun/26": 4085169.0, "Jul/26": 3938560.0, "Ago/26": 2888107.0, "Set/26": 2215624.0, "Out/26": 474499.0, "Nov/26": 7400.0, "Dez/26": 7400.0, "Plan 2027": 29645325.0, "Plan 2028": 0.0}, {"fc": "BRXSP21", "desc": "Nave Buffer XD (XSP21)", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 774156.0, "Ago/26": 1334000.0, "Set/26": 2809890.0, "Out/26": 2180671.0, "Nov/26": 1475890.0, "Dez/26": 0.0, "Plan 2027": 702072.0, "Plan 2028": 0.0}, {"fc": "BRXSP23", "desc": "Nave Buffer Sortation", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 621165.0, "Jun/26": 718545.0, "Jul/26": 790986.0, "Ago/26": 7400.0, "Set/26": 129728.0, "Out/26": 206435.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP25", "desc": "Nave Loggi Sortation", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 250000.0, "Jul/26": 0.0, "Ago/26": 250000.0, "Set/26": 0.0, "Out/26": 250000.0, "Nov/26": 0.0, "Dez/26": 2250000.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP52", "desc": "Nave Move SVC", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 3750000.0, "Jun/26": 3750000.0, "Jul/26": 373000.0, "Ago/26": 32548.0, "Set/26": 97644.0, "Out/26": 162740.0, "Nov/26": 195288.0, "Dez/26": 65096.0, "Plan 2027": 97644.0, "Plan 2028": 0.0}, {"fc": "BRXSP19", "desc": "SC III", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 10000000.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 35000000.0, "Plan 2028": 0.0}, {"fc": "BRXSP22", "desc": "SP - Zona Norte", "picking": "XD", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 2390732.0, "Plan 2028": 0.0}, {"fc": "BRSP33", "desc": "Sao Paulo 33", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 2020228.0, "Jul/26": 1205076.0, "Ago/26": 258596.0, "Set/26": 24172.0, "Out/26": 24172.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP32", "desc": "Jundiai", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSPX2", "desc": "Zona Sul", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 110770.0, "Jul/26": 332311.0, "Ago/26": 553852.0, "Set/26": 664622.0, "Out/26": 221541.0, "Nov/26": 221541.0, "Dez/26": 110770.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSP59", "desc": "São Paulo", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 58253.0, "Set/26": 174760.0, "Out/26": 291267.0, "Nov/26": 349520.0, "Dez/26": 116507.0, "Plan 2027": 174760.0, "Plan 2028": 0.0}, {"fc": "SSP53", "desc": "Opção Tanaka - Praia Grande", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 43561.0, "Set/26": 130684.0, "Out/26": 217806.0, "Nov/26": 261367.0, "Dez/26": 87122.0, "Plan 2027": 130684.0, "Plan 2028": 0.0}, {"fc": "SSP56", "desc": "SP1_I Bauru", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 106807.0, "Set/26": 320421.0, "Out/26": 534035.0, "Nov/26": 640842.0, "Dez/26": 213614.0, "Plan 2027": 320421.0, "Plan 2028": 0.0}, {"fc": "SSP54", "desc": "São Carlos [RP]", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 55344.0, "Set/26": 166033.0, "Out/26": 276721.0, "Nov/26": 332065.0, "Dez/26": 110688.0, "Plan 2027": 166033.0, "Plan 2028": 0.0}, {"fc": "SSP55", "desc": "Ribeirão Preto [RP]", "picking": "SVC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 157895.0, "Jul/26": 473685.0, "Ago/26": 789475.0, "Set/26": 947369.0, "Out/26": 315790.0, "Nov/26": 315790.0, "Dez/26": 157895.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRRC05", "desc": "Receiving Center", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 77057.0, "Jun/26": 6477.0, "Jul/26": 630830.0, "Ago/26": 560765.0, "Set/26": 761986.0, "Out/26": 640993.0, "Nov/26": 867510.0, "Dez/26": 404278.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP38", "desc": "São Bernardo do Campo", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 130952.0, "Jun/26": 530825.0, "Jul/26": 1651223.0, "Ago/26": 2047890.0, "Set/26": 1480815.0, "Out/26": 1038646.0, "Nov/26": 1370351.0, "Dez/26": 243820.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRXSP24", "desc": "SC Prologis Cajamar 31", "picking": "SC", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 707922.0, "Jul/26": 2866112.0, "Ago/26": 2313014.0, "Set/26": 904977.0, "Out/26": 1340596.0, "Nov/26": 693197.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP34", "desc": "0", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "BRSP35", "desc": "0", "picking": "FBM", "estado": "São Paulo (SP)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 0.0, "Set/26": 0.0, "Out/26": 0.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "SSE1", "desc": "Aracaju", "picking": "SVC", "estado": "Sergipe (SE)", "realizado": 240407.62, "Mai/26": 3859.0, "Jun/26": 14923.0, "Jul/26": 3040.0, "Ago/26": 25232.0, "Set/26": 32082.0, "Out/26": 22312.0, "Nov/26": 21848.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "STO1", "desc": "Palmas", "picking": "SVC", "estado": "Tocantins (TO)", "realizado": 30787.79, "Mai/26": 3859.0, "Jun/26": 11862.0, "Jul/26": 2090.0, "Ago/26": 46114.0, "Set/26": 49232.0, "Out/26": 41820.0, "Nov/26": 40157.0, "Dez/26": 6429.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "STO3", "desc": "Tocantins", "picking": "SVC", "estado": "Tocantins (TO)", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 0.0, "Ago/26": 42173.0, "Set/26": 126520.0, "Out/26": 210866.0, "Nov/26": 253039.0, "Dez/26": 84346.0, "Plan 2027": 126520.0, "Plan 2028": 0.0}, {"fc": "MLB_SVC", "desc": "SVC General", "picking": "SVC", "estado": "0", "realizado": 0.0, "Mai/26": 2378.0, "Jun/26": 5000.0, "Jul/26": 25000.0, "Ago/26": 15000.0, "Set/26": 5000.0, "Out/26": 15000.0, "Nov/26": 5000.0, "Dez/26": 5000.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "MLB_XD", "desc": "XD General", "picking": "XD", "estado": "0", "realizado": 0.0, "Mai/26": 0.0, "Jun/26": 0.0, "Jul/26": 1667.0, "Ago/26": 1667.0, "Set/26": 0.0, "Out/26": 1667.0, "Nov/26": 0.0, "Dez/26": 0.0, "Plan 2027": 0.0, "Plan 2028": 0.0}, {"fc": "MLB_FBM", "desc": "FBM General", "picking": "FBM", "estado": "0", "realizado": 0.0, "Mai/26": 489976.0, "Jun/26": 439900.0, "Jul/26": 439900.0, "Ago/26": 439900.0, "Set/26": 7400.0, "Out/26": 7400.0, "Nov/26": 75900.0, "Dez/26": -4003236.0, "Plan 2027": 0.0, "Plan 2028": 0.0}];
+const MONTHS = ["Mai/26", "Jun/26", "Jul/26", "Ago/26", "Set/26", "Out/26", "Nov/26", "Dez/26", "Plan 2027", "Plan 2028"];
+const FX     = 5.20;
+const MONTHS_FUTURE = MONTHS.filter(m=>!m.includes('Plan'));
+let CUR = 'BRL';
+let FILTERED = [...RAW];
+let pickingChart, estadoChart;
+
+const PICK_COLORS = {
+  FBM:{solid:'#2563eb',light:'rgba(37,99,235,.22)'},
+  SVC:{solid:'#16a34a',light:'rgba(22,163,74,.22)'},
+  XD: {solid:'#d97706',light:'rgba(217,119,6,.22)'},
+  AIR:{solid:'#7c3aed',light:'rgba(124,58,237,.22)'},
+  SC: {solid:'#db2777',light:'rgba(219,39,119,.22)'},
+};
+const ESTADO_PALETTE=['#2563eb','#16a34a','#d97706','#7c3aed','#db2777',
+  '#0891b2','#65a30d','#ea580c','#4f46e5','#0d9488','#b45309','#9333ea',
+  '#be123c','#0369a1','#15803d','#c2410c','#6d28d9','#0e7490','#4d7c0f',
+  '#b91c1c','#1d4ed8','#047857','#6b21a8','#be185d','#155e75','#3f6212','#92400e'];
+
+/* ── UTILS ── */
+function toD(val,from){ return from===CUR?val:(from==='BRL'?val/FX:val*FX); }
+function fmt(v){
+  const p=CUR==='BRL'?'R$ ':'$ ', a=Math.abs(v);
+  if(a>=1e9) return p+(v/1e9).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' Bi';
+  if(a>=1e6) return p+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' M';
+  if(a>=1e3) return p+(v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})+' K';
+  return p+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+function fmtFull(v){ return (CUR==='BRL'?'R$ ':'$ ')+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function pct(p,t){ return t?((p/t)*100).toFixed(1)+'%':'—'; }
+function sumPrev(r){ return MONTHS.reduce((s,m)=>s+r[m],0); }
+function sumPrev2026(r){ return MONTHS_FUTURE.reduce((s,m)=>s+r[m],0); }
+function badgeClass(p){ const m={FBM:'bfbm',SVC:'bsvc',XD:'bxd',AIR:'bair',SC:'bsc'}; return m[p]||'bsvc'; }
+
+/* ── TOP 5 FCs helper ── */
+function top5Lines(data, groupKey, groupVal, sortByPrev){
+  const items=[...data].filter(r=>r[groupKey]===groupVal);
+  items.sort((a,b)=>sortByPrev
+    ? toD(sumPrev(b),'USD')-toD(sumPrev(a),'USD')
+    : toD(b.realizado,'BRL')-toD(a.realizado,'BRL'));
+  const top=items.slice(0,5);
+  const lines=['──── Top 5 FCs ────'];
+  top.forEach((r,i)=>{
+    const val=sortByPrev?toD(sumPrev(r),'USD'):toD(r.realizado,'BRL');
+    lines.push((i+1)+'. '+r.fc+' ('+r.desc.slice(0,18)+'): '+fmt(val));
+  });
+  return lines;
+}
+
+/* ── MULTI-SELECT ── */
+function buildMs(wrapperId, options, placeholder){
+  const wrap=document.getElementById(wrapperId);
+  wrap.innerHTML=`
+    <div class="ms-trigger" onclick="toggleMs('${wrapperId}')">${placeholder}</div>
+    <div class="ms-dropdown">
+      <label class="ms-item" style="font-weight:700">
+        <input type="checkbox" value="__all__" checked onchange="msToggleAll(this,'${wrapperId}')"> Todos
+      </label>
+      <div class="ms-divider"></div>
+      ${options.map(o=>`<label class="ms-item"><input type="checkbox" value="${o}" checked onchange="msItemChange('${wrapperId}')">${o}</label>`).join('')}
+    </div>`;
+}
+
+function toggleMs(id){
+  document.querySelectorAll('.ms-wrap.open').forEach(el=>{if(el.id!==id) el.classList.remove('open');});
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-wrap.open').forEach(el=>el.classList.remove('open'));
+});
+
+function msToggleAll(cb, id){
+  document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(c=>c.checked=cb.checked);
+  msUpdateTrigger(id); applyFilters();
+}
+function msItemChange(id){
+  const all=document.querySelectorAll(`#${id} input[value="__all__"]`)[0];
+  const items=document.querySelectorAll(`#${id} input:not([value="__all__"])`);
+  all.checked=[...items].every(c=>c.checked);
+  msUpdateTrigger(id); applyFilters();
+}
+function msUpdateTrigger(id){
+  const trigger=document.querySelector(`#${id} .ms-trigger`);
+  const items=[...document.querySelectorAll(`#${id} input:not([value="__all__"])`)];
+  const checked=items.filter(c=>c.checked);
+  if(checked.length===items.length||checked.length===0){
+    trigger.innerHTML='Todos';
+  } else {
+    trigger.innerHTML=`${checked.length} selecionado(s)<span class="ms-selected-count">${checked.length}</span>`;
+  }
+}
+function msGetSelected(id){
+  const items=[...document.querySelectorAll(`#${id} input:not([value="__all__"])`)];
+  const checked=items.filter(c=>c.checked).map(c=>c.value);
+  return checked.length===items.length?[]:checked;
+}
+
+/* ── POPULATE FILTERS ── */
+function populateFilters(){
+  const estados=[...new Set(RAW.map(r=>r.estado))].filter(v=>v&&v!=='nan').sort();
+  const fcs=[...new Set(RAW.map(r=>r.fc))].sort();
+  const pickings=[...new Set(RAW.map(r=>r.picking))].sort();
+  buildMs('ms-estado', estados, 'Todos');
+  buildMs('ms-fc', fcs, 'Todos');
+  buildMs('ms-picking', pickings, 'Todos');
+}
+
+/* ── FILTER ── */
+function getFiltered(){
+  const es=msGetSelected('ms-estado');
+  const fs=msGetSelected('ms-fc');
+  const ps=msGetSelected('ms-picking');
+  return RAW.filter(r=>
+    (!es.length||es.includes(r.estado))&&
+    (!fs.length||fs.includes(r.fc))&&
+    (!ps.length||ps.includes(r.picking))
+  );
+}
+
+/* ── CURRENCY ── */
+function setCurrency(cur){
+  CUR=cur;
+  document.getElementById('btn-brl').classList.toggle('active',cur==='BRL');
+  document.getElementById('btn-usd').classList.toggle('active',cur==='USD');
+  ['ct-pick','ct-estado'].forEach(id=>document.getElementById(id).textContent=cur);
+  ['cur-real','cur-prev','cur-27','cur-28'].forEach(id=>document.getElementById(id).textContent=cur);
+  applyFilters();
+}
+
+/* ── APPLY ── */
+function applyFilters(){
+  FILTERED=getFiltered();
+  renderKPIs(FILTERED);
+  renderPickingChart(FILTERED);
+  renderEstadoChart(FILTERED);
+  renderTable(FILTERED);
+}
+
+/* ── KPIs ── */
+function renderKPIs(data){
+  document.getElementById('k-real').textContent=fmtFull(toD(data.reduce((s,r)=>s+r.realizado,0),'BRL'));
+  document.getElementById('k-prev').textContent=fmtFull(toD(data.reduce((s,r)=>s+sumPrev2026(r),0),'USD'));
+  document.getElementById('k-27').textContent  =fmtFull(toD(data.reduce((s,r)=>s+r['Plan 2027'],0),'USD'));
+  document.getElementById('k-28').textContent  =fmtFull(toD(data.reduce((s,r)=>s+r['Plan 2028'],0),'USD'));
+  document.getElementById('k-fcs').textContent =data.filter(r=>r.realizado>0).length;
+}
+
+/* ── CHART: PICKING TYPE ── */
+function renderPickingChart(data){
+  const byReal={},byPrev={};
+  data.forEach(r=>{
+    const k=r.picking||'N/A';
+    byReal[k]=(byReal[k]||0)+toD(r.realizado,'BRL');
+    byPrev[k]=(byPrev[k]||0)+toD(sumPrev(r),'USD');
+  });
+  const labels=Object.keys(byReal).sort();
+  const totR=Object.values(byReal).reduce((s,v)=>s+v,0);
+  const totP=Object.values(byPrev).reduce((s,v)=>s+v,0);
+  const solids=labels.map(l=>(PICK_COLORS[l]||{solid:'#94a3b8'}).solid);
+  const lights=labels.map(l=>(PICK_COLORS[l]||{light:'rgba(148,163,184,.2)'}).light);
+
+  if(pickingChart) pickingChart.destroy();
+  pickingChart=new Chart(document.getElementById('pickingChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Realizado',data:labels.map(l=>byReal[l]||0),backgroundColor:solids,borderRadius:6,borderSkipped:false},
+      {label:'Previsto Total',data:labels.map(l=>byPrev[l]||0),backgroundColor:lights,borderRadius:6,borderSkipped:false,borderWidth:2,borderColor:solids}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},boxWidth:12}},
+        tooltip:{
+          backgroundColor:'rgba(15,20,40,.94)',titleColor:'#fff200',bodyColor:'#e2e8f0',
+          padding:13,cornerRadius:8,callbacks:{
+            title:ctx=>`${ctx[0].label} — ${ctx[0].dataset.label}`,
+            label:ctx=>{
+              const isReal=ctx.datasetIndex===0;
+              const lines=[
+                ' Valor: '+fmtFull(ctx.parsed.y),
+                ' % do total: '+pct(ctx.parsed.y,isReal?totR:totP),
+                ' FCs: '+data.filter(r=>r.picking===ctx.label).length,
+                ''
+              ];
+              return lines.concat(top5Lines(data,'picking',ctx.label,!isReal));
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11,weight:'600'},color:'#333'}},
+        y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>fmt(v),font:{size:9}}}
+      }
+    }
+  });
+}
+
+/* ── CHART: ESTADO ── */
+function renderEstadoChart(data){
+  const byReal={},byPrev={};
+  data.forEach(r=>{
+    const k=r.estado||'N/A';
+    byReal[k]=(byReal[k]||0)+toD(r.realizado,'BRL');
+    byPrev[k]=(byPrev[k]||0)+toD(sumPrev(r),'USD');
+  });
+  const labels=Object.entries(byReal).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k])=>k);
+  const totR=labels.reduce((s,l)=>s+(byReal[l]||0),0);
+  const totP=labels.reduce((s,l)=>s+(byPrev[l]||0),0);
+  const colors=labels.map((_,i)=>ESTADO_PALETTE[i%ESTADO_PALETTE.length]);
+
+  if(estadoChart) estadoChart.destroy();
+  estadoChart=new Chart(document.getElementById('estadoChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Realizado',data:labels.map(l=>byReal[l]||0),backgroundColor:colors,borderRadius:6,borderSkipped:false},
+      {label:'Previsto Total',data:labels.map(l=>byPrev[l]||0),backgroundColor:colors.map(c=>c+'33'),borderRadius:6,borderSkipped:false,borderWidth:2,borderColor:colors}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},boxWidth:12}},
+        tooltip:{
+          backgroundColor:'rgba(15,20,40,.94)',titleColor:'#fff200',bodyColor:'#e2e8f0',
+          padding:13,cornerRadius:8,callbacks:{
+            title:ctx=>`${ctx[0].label} — ${ctx[0].dataset.label}`,
+            label:ctx=>{
+              const isReal=ctx.datasetIndex===0;
+              const lines=[
+                ' Valor: '+fmtFull(ctx.parsed.y),
+                ' % do total: '+pct(ctx.parsed.y,isReal?totR:totP),
+                ' FCs no estado: '+data.filter(r=>r.estado===ctx.label).length,
+                ''
+              ];
+              return lines.concat(top5Lines(data,'estado',ctx.label,!isReal));
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{display:false},
+          ticks:{
+            font:{size:8},color:'#333',maxRotation:45,minRotation:30,
+            callback:(v,i)=>{
+              const lbl=labels[i]||''; return lbl.length>12?lbl.substring(0,11)+'…':lbl;
+            }
+          }
+        },
+        y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>fmt(v),font:{size:9}}}
+      }
+    }
+  });
+}
+
+/* ── TABLE ── */
+function renderTable(data){
+  const thead=document.getElementById('thead');
+  const tbody=document.getElementById('tbody');
+  const tfoot=document.getElementById('tfoot');
+  const noData=document.getElementById('no-data');
+  const table=document.querySelector('table');
+
+  if(!data.length){table.style.display='none';noData.style.display='block';return;}
+  table.style.display='';noData.style.display='none';
+
+  thead.innerHTML=`<tr>
+    <th>FC</th><th>Descrição</th><th>Estado</th>
+    <th class="r">Realizado (${CUR})</th>
+    ${MONTHS.map(m=>'<th class="r">'+m+' ('+CUR+')</th>').join('')}
+    <th class="r">Total Investido (${CUR})</th></tr>`;
+
+  const groups={};
+  data.forEach(r=>{(groups[r.picking]=groups[r.picking]||[]).push(r);});
+  const sortedGroups=Object.keys(groups).sort();
+
+  let rows='', grandReal=0, grandPrev=0, grandByM={};
+  MONTHS.forEach(m=>grandByM[m]=0);
+
+  sortedGroups.forEach(pt=>{
+    const items=[...groups[pt]].sort((a,b)=>a.fc.localeCompare(b.fc));
+    const gR=items.reduce((s,r)=>s+toD(r.realizado,'BRL'),0);
+    const gP=items.reduce((s,r)=>s+toD(sumPrev(r),'USD'),0);
+    const gM={};
+    MONTHS.forEach(m=>{gM[m]=items.reduce((s,r)=>s+toD(r[m],'USD'),0);});
+    const span=3+MONTHS.length+2;
+
+    rows+=`<tr class="group-header"><td colspan="${span}">
+      <span class="badge ${badgeClass(pt)}">${pt}</span>
+      ${items.length} FC(s) &nbsp;|&nbsp; Realizado: ${fmt(gR)} &nbsp;|&nbsp; Previsto total: ${fmt(gP)}
+    </td></tr>`;
+
+    items.forEach(r=>{
+      const rD=toD(r.realizado,'BRL'), pD=toD(sumPrev(r),'USD');
+      grandReal+=rD; grandPrev+=pD;
+      MONTHS.forEach(m=>grandByM[m]+=toD(r[m],'USD'));
+      const totalInvested=rD+pD;
+      rows+=`<tr>
+        <td><strong>${r.fc}</strong></td><td>${r.desc}</td><td>${r.estado}</td>
+        <td class="r">${r.realizado>0?fmt(rD):'—'}</td>
+        ${MONTHS.map(m=>`<td class="r">${r[m]>0?fmt(toD(r[m],'USD')):'—'}</td>`).join('')}
+        <td class="r"><strong>${totalInvested>0?fmt(totalInvested):'—'}</strong></td>
+      </tr>`;
+    });
+
+    rows+=`<tr class="subtotal">
+      <td colspan="3">Subtotal — ${pt}</td>
+      <td class="r">${fmt(gR)}</td>
+      ${MONTHS.map(m=>`<td class="r">${fmt(gM[m])}</td>`).join('')}
+      <td class="r"><strong>${fmt(gR+gP)}</strong></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML=rows;
+  tfoot.innerHTML=`<tr>
+    <td colspan="3"><strong>TOTAL GERAL</strong></td>
+    <td class="r">${fmt(grandReal)}</td>
+    ${MONTHS.map(m=>`<td class="r">${fmt(grandByM[m])}</td>`).join('')}
+    <td class="r"><strong>${fmt(grandReal+grandPrev)}</strong></td>
+  </tr>`;
+}
+
+/* ── DOWNLOAD PDF ── */
+function downloadDashboard(){
+  window.print();
+}
+
+/* ── RESET ── */
+function resetFilters(){
+  ['ms-estado','ms-fc','ms-picking'].forEach(id=>{
+    document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(c=>c.checked=true);
+    msUpdateTrigger(id);
+  });
+  applyFilters();
+}
+
+populateFilters();
+applyFilters();
+</script>
+</body>
+</html>
